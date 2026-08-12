@@ -6,6 +6,7 @@ import {
   Users,
   UserPlus,
   Trash2,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,11 +20,13 @@ import { useState } from "react";
 import MembersDialog from "@/features/workspace/MembersDialog";
 import AddMembersDialog from "@/features/workspace/AddMembersDialog";
 import DeleteWorkspaceDialog from "@/features/workspace/DeleteWorkspaceDialog";
+import { leaveWorkspace } from "@/actions/leaveWorkspace";
 
 type ChatHeaderProps = {
   workspace?: {
     id: string;
     name: string;
+    role: "OWNER" | "ADMIN" | "MEMBER";
   };
 };
 
@@ -31,6 +34,23 @@ export default function ChatHeader({ workspace }: ChatHeaderProps) {
   const [membersOpen, setMembersOpen] = useState(false);
   const [addMembersOpen, setAddMembersOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+
+  const handleLeaveWorkspace = async () => {
+    if (!workspace || workspace.role === "OWNER") {
+      return;
+    }
+
+    try {
+      setLeaving(true);
+
+      await leaveWorkspace(workspace.id);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLeaving(false);
+    }
+  };
 
   return (
     <>
@@ -68,13 +88,24 @@ export default function ChatHeader({ workspace }: ChatHeaderProps) {
 
               <DropdownMenuSeparator />
 
-              <DropdownMenuItem
-                variant="destructive"
-                onClick={() => setDeleteOpen(true)}
-              >
-                <Trash2 />
-                Delete workspace
-              </DropdownMenuItem>
+              {workspace.role === "OWNER" ? (
+                <DropdownMenuItem
+                  variant="destructive"
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  <Trash2 />
+                  Delete workspace
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem
+                  variant="destructive"
+                  onClick={handleLeaveWorkspace}
+                  disabled={leaving}
+                >
+                  <LogOut />
+                  {leaving ? "Leaving..." : "Leave workspace"}
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         )}

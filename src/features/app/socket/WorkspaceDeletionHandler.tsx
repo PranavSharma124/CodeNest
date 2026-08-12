@@ -16,9 +16,17 @@ export default function WorkspaceDeletionHandler() {
     }) => {
       console.log("Workspace deleted:", workspaceId);
 
-      const workspacePath = `/workspace/${workspaceId}`;
+      if (pathname === `/workspace/${workspaceId}`) {
+        router.push("/dashboard");
+      } else {
+        router.refresh();
+      }
+    };
 
-      if (pathname === workspacePath) {
+    const handleWorkspaceLeft = ({ workspaceId }: { workspaceId: string }) => {
+      console.log("Left workspace:", workspaceId);
+
+      if (pathname === `/workspace/${workspaceId}`) {
         router.push("/dashboard");
       } else {
         router.refresh();
@@ -26,9 +34,11 @@ export default function WorkspaceDeletionHandler() {
     };
 
     socket.on("workspace-deleted", handleWorkspaceDeleted);
+    socket.on("workspace-left", handleWorkspaceLeft);
 
     return () => {
       socket.off("workspace-deleted", handleWorkspaceDeleted);
+      socket.off("workspace-left", handleWorkspaceLeft);
     };
   }, [pathname, router]);
 

@@ -27,43 +27,65 @@ export default function Sidebar({
   directConversations,
 }: SidebarProps) {
   const router = useRouter();
-  const [deletedWorkspaceIds, setDeletedWorkspaceIds] = useState<Set<string>>(
-    new Set(),
-  );
+  const [hiddenWorkspaceIds, setHiddenWorkspaceIds] = useState<Set<string>>(
+  new Set(),
+);
 
   const visibleWorkspaces = workspaces.filter(
-    (workspace) => !deletedWorkspaceIds.has(workspace.id),
-  );
+  (workspace) => !hiddenWorkspaceIds.has(workspace.id),
+);
 
   useEffect(() => {
-    const handleWorkspaceAdded = () => {
-      console.log("Workspace added — refreshing sidebar");
+  const handleWorkspaceAdded = () => {
+    console.log("Workspace added — refreshing sidebar");
 
-      router.refresh();
-    };
+    router.refresh();
+  };
 
-    const handleWorkspaceDeleted = ({
+  const handleWorkspaceDeleted = ({
+    workspaceId,
+  }: {
+    workspaceId: string;
+  }) => {
+    console.log(
+      "Removing deleted workspace from sidebar:",
       workspaceId,
-    }: {
-      workspaceId: string;
-    }) => {
-      console.log("Removing deleted workspace from sidebar:", workspaceId);
+    );
 
-      setDeletedWorkspaceIds((currentIds) => {
-        const nextIds = new Set(currentIds);
-        nextIds.add(workspaceId);
-        return nextIds;
-      });
-    };
+    setHiddenWorkspaceIds((currentIds) => {
+      const nextIds = new Set(currentIds);
+      nextIds.add(workspaceId);
+      return nextIds;
+    });
+  };
 
-    socket.on("workspace-added", handleWorkspaceAdded);
-    socket.on("workspace-deleted", handleWorkspaceDeleted);
+  const handleWorkspaceLeft = ({
+    workspaceId,
+  }: {
+    workspaceId: string;
+  }) => {
+    console.log(
+      "Removing left workspace from sidebar:",
+      workspaceId,
+    );
 
-    return () => {
-      socket.off("workspace-added", handleWorkspaceAdded);
-      socket.off("workspace-deleted", handleWorkspaceDeleted);
-    };
-  }, []);
+    setHiddenWorkspaceIds((currentIds) => {
+      const nextIds = new Set(currentIds);
+      nextIds.add(workspaceId);
+      return nextIds;
+    });
+  };
+
+  socket.on("workspace-added", handleWorkspaceAdded);
+  socket.on("workspace-deleted", handleWorkspaceDeleted);
+  socket.on("workspace-left", handleWorkspaceLeft);
+
+  return () => {
+    socket.off("workspace-added", handleWorkspaceAdded);
+    socket.off("workspace-deleted", handleWorkspaceDeleted);
+    socket.off("workspace-left", handleWorkspaceLeft);
+  };
+}, [router]);
 
   return (
     <aside className="w-64 border p-4 space-y-6">

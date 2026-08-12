@@ -8,6 +8,7 @@ type ChatProps = {
   workspace?: {
     id: string;
     name: string;
+    role: "OWNER" | "ADMIN" | "MEMBER";
   };
 };
 

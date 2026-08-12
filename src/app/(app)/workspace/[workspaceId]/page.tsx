@@ -17,13 +17,7 @@ export default async function WorkspacePage({ params }: Props) {
 
   return (
     <div>
-      <Chat
-        conversation={conversation}
-        workspace={{
-          id: workspace.id,
-          name: workspace.name,
-        }}
-      />
+      <Chat conversation={conversation} workspace={workspace} />
     </div>
   );
 }

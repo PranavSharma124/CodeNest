@@ -43,5 +43,8 @@ export async function getWorkspaceChat(workspaceId: string) {
     throw new Error("Workspace not found");
   }
 
-  return membership.workspace;
+  return {
+    ...membership.workspace,
+    role: membership.role,
+  };
 }
