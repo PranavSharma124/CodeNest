@@ -9,7 +9,11 @@ type ChatProps = {
 export default function Chat({ conversation }: ChatProps) {
   return (
     <div className="flex h-full flex-col">
-      <MessageList messages={conversation.messages} />
+      <MessageList
+        key={conversation.id}
+        messages={conversation.messages}
+        conversationId={conversation.id}
+      />
 
       <MessageInput conversationId={conversation.id} />
     </div>

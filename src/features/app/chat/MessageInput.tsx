@@ -3,14 +3,12 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { sendMessage } from "@/actions/sendMessage";
-import { useRouter } from "next/navigation";
 
 type MessageInputProps = {
   conversationId: string;
 };
 
 export default function MessageInput({ conversationId }: MessageInputProps) {
-  const router = useRouter();
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -20,7 +18,6 @@ export default function MessageInput({ conversationId }: MessageInputProps) {
     setLoading(true);
     try {
       await sendMessage(conversationId, content);
-      router.refresh();
       setContent("");
     } catch (error) {
       console.error(error);

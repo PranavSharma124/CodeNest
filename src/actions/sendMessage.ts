@@ -2,6 +2,7 @@
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { getSocketIO } from "@/lib/socket-server";
 
 export async function sendMessage(conversationId: string, content: string) {
   if (!content.trim()) {
@@ -54,6 +55,10 @@ export async function sendMessage(conversationId: string, content: string) {
       sender: true,
     },
   });
+
+  const io = getSocketIO();
+
+  io?.to(`conversation:${conversationId}`).emit("new-message", message);
 
   return message;
 }
