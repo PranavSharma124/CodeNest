@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { WorkspaceRole, ConversationType } from "@prisma/client";
+import { revalidatePath } from "next/cache";
 
 export async function createWorkspace(name: string) {
   if (!name.trim()) {
@@ -36,6 +37,8 @@ export async function createWorkspace(name: string) {
 
     return workspace;
   });
+
+  revalidatePath("/", "layout");
 
   return createdWorkspace;
 }

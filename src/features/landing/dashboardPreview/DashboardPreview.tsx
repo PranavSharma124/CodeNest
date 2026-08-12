@@ -52,10 +52,19 @@ const directConversations = [
 export default function DashboardPreview() {
   return (
     <section>
-      <DashboardHeader />
-
+      <DashboardHeader
+        user={{
+          name: "Demo User",
+          email: "demo@example.com",
+          image: null,
+        }}
+      />
       <div className="flex">
-        <Sidebar workspaces={workspaces} users={users} directConversations={directConversations}/>
+        <Sidebar
+          workspaces={workspaces}
+          users={users}
+          directConversations={directConversations}
+        />
 
         <ChatPanel />
       </div>

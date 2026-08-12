@@ -34,6 +34,7 @@ export default function NewWorkspaceButton() {
       setOpen(false);
 
       router.push(`/workspace/${workspace.id}`);
+      router.refresh();
     } catch (error) {
       console.error(error);
     } finally {

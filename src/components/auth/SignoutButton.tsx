@@ -3,6 +3,7 @@ import { authClient } from "@/lib/auth-client";
 import { Button } from "../ui/button";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { LogOut } from "lucide-react";
 
 export default function SignoutButton() {
   const router = useRouter();
@@ -30,7 +31,13 @@ export default function SignoutButton() {
   };
 
   return (
-    <Button onClick={handleClick} disabled={loading}>
+    <Button
+      onClick={handleClick}
+      disabled={loading}
+      variant="ghost"
+      className="w-full justify-start"
+    >
+      <LogOut className="mr-2 h-4 w-4" />
       {loading ? "Signing out..." : "Sign Out"}
     </Button>
   );

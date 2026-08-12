@@ -43,10 +43,11 @@ export default function NewMessageButton({ users }: NewMessageButtonProps) {
               onClick={() => {
                 startTransition(async () => {
                   try {
-                    setOpen(false)
+                    setOpen(false);
                     const conversation = await getOrCreateDirectConversation(
                       user.id,
                     );
+                    router.refresh();
                     router.push(`/DM/${conversation.id}`);
                   } catch (error) {
                     console.error(error);

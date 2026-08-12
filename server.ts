@@ -45,6 +45,8 @@ app.prepare().then(() => {
   io.on("connection", (socket) => {
     const userId = socket.data.userId;
 
+    socket.join(`user:${userId}`);
+
     socket.on("join-conversation", async (conversationId: string) => {
       const conversation = await prisma.conversation.findFirst({
         where: {

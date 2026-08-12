@@ -7,6 +7,8 @@ import Sidebar from "@/features/app/sidebar/Sidebar";
 import { getWorkspaces } from "@/actions/getWorkspaces";
 import { getUsers } from "@/actions/getUsers";
 import { getDirectConversations } from "@/actions/getDirectConversations";
+import SocketConnection from "@/features/app/socket/SocketConnection";
+import WorkspaceDeletionHandler from "@/features/app/socket/WorkspaceDeletionHandler";
 
 export default async function AppLayout({
   children,
@@ -26,10 +28,17 @@ export default async function AppLayout({
 
   return (
     <>
-      <DashboardHeader />
+      <SocketConnection />
+      <WorkspaceDeletionHandler />
+
+      <DashboardHeader user={session.user} />
 
       <div className="flex">
-        <Sidebar workspaces={workspaces} users={users} directConversations={directConversations}/>
+        <Sidebar
+          workspaces={workspaces}
+          users={users}
+          directConversations={directConversations}
+        />
 
         <main className="flex-1">{children}</main>
       </div>

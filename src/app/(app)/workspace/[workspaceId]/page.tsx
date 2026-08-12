@@ -17,8 +17,13 @@ export default async function WorkspacePage({ params }: Props) {
 
   return (
     <div>
-      <h1>{workspace.name}</h1>
-      <Chat conversation={conversation} />
+      <Chat
+        conversation={conversation}
+        workspace={{
+          id: workspace.id,
+          name: workspace.name,
+        }}
+      />
     </div>
   );
 }

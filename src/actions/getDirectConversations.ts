@@ -39,18 +39,22 @@ export async function getDirectConversations() {
     },
   });
 
-  const sidebarConversations = directConversations.map((conversation) => {
-    const otherParticipant= conversation.participants.find((participant)=>participant.userId!==session.user.id)
+  const sidebarConversations = directConversations
+    .map((conversation) => {
+      const otherParticipant = conversation.participants.find(
+        (participant) => participant.userId !== session.user.id,
+      );
 
-    if(!otherParticipant){
-        return null
-    }
+      if (!otherParticipant) {
+        return null;
+      }
 
-    return{
-        id:conversation.id,
-        user:otherParticipant.user
-    }
-}).filter((conversation) => conversation !== null);
+      return {
+        id: conversation.id,
+        user: otherParticipant.user,
+      };
+    })
+    .filter((conversation) => conversation !== null);
 
   return sidebarConversations;
 }

@@ -18,26 +18,27 @@ export default function MessageList({
 
   useEffect(() => {
     const handleConnect = () => {
+      console.log("Connected", socket.id);
+
       socket.emit("join-conversation", conversationId);
     };
 
     const handleNewMessage = (message: WorkspaceMessage) => {
+      console.log("Received new-message:", message);
+
       setLiveMessages((currentMessages) => [...currentMessages, message]);
     };
 
     socket.on("connect", handleConnect);
     socket.on("new-message", handleNewMessage);
 
-    if (!socket.connected) {
-      socket.connect();
-    } else {
+    if (socket.connected) {
       socket.emit("join-conversation", conversationId);
     }
 
     return () => {
       socket.off("connect", handleConnect);
       socket.off("new-message", handleNewMessage);
-      socket.disconnect();
     };
   }, [conversationId]);
 

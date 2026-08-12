@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 
 export default function CreateWorkspaceForm() {
-    const router = useRouter();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
 
@@ -23,6 +23,7 @@ export default function CreateWorkspaceForm() {
       const workspace = await createWorkspace(name);
       setName("");
       router.push(`/workspace/${workspace.id}`);
+      router.refresh();
     } catch (error) {
       console.error(error);
     } finally {
