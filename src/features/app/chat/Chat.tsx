@@ -5,6 +5,7 @@ import ChatHeader from "./ChatPanel/ChatHeader";
 
 type ChatProps = {
   conversation: WorkspaceConversation;
+  currentUserId: string;
   workspace?: {
     id: string;
     name: string;
@@ -12,7 +13,11 @@ type ChatProps = {
   };
 };
 
-export default function Chat({ conversation, workspace }: ChatProps) {
+export default function Chat({
+  conversation,
+  currentUserId,
+  workspace,
+}: ChatProps) {
   return (
     <div className="flex h-full flex-col">
       <ChatHeader workspace={workspace} />
@@ -21,6 +26,7 @@ export default function Chat({ conversation, workspace }: ChatProps) {
         key={conversation.id}
         messages={conversation.messages}
         conversationId={conversation.id}
+        currentUserId={currentUserId}
       />
 
       <MessageInput conversationId={conversation.id} />

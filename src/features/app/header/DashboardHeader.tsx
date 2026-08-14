@@ -1,6 +1,7 @@
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ProfileMenu from "../appheader/ProfileMenu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import SearchBar from "./SearchBar";
 
 type DashboardHeaderProps = {

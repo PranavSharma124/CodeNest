@@ -8,11 +8,13 @@ import { socket } from "@/lib/socket";
 type MessageListProps = {
   messages: WorkspaceMessage[];
   conversationId: string;
+  currentUserId: string;
 };
 
 export default function MessageList({
   messages,
   conversationId,
+  currentUserId,
 }: MessageListProps) {
   const [liveMessages, setLiveMessages] = useState(messages);
 
@@ -29,8 +31,19 @@ export default function MessageList({
       setLiveMessages((currentMessages) => [...currentMessages, message]);
     };
 
+    const handleMessageUpdated = (message: WorkspaceMessage) => {
+      console.log("Received message-updated:", message);
+
+      setLiveMessages((currentMessages) =>
+        currentMessages.map((currentMessage) =>
+          currentMessage.id === message.id ? message : currentMessage,
+        ),
+      );
+    };
+
     socket.on("connect", handleConnect);
     socket.on("new-message", handleNewMessage);
+    socket.on("message-updated", handleMessageUpdated);
 
     if (socket.connected) {
       socket.emit("join-conversation", conversationId);
@@ -39,13 +52,18 @@ export default function MessageList({
     return () => {
       socket.off("connect", handleConnect);
       socket.off("new-message", handleNewMessage);
+      socket.off("message-updated", handleMessageUpdated);
     };
   }, [conversationId]);
 
   return (
     <div className="flex-1 overflow-y-auto">
       {liveMessages.map((message) => (
-        <MessageItem key={message.id} message={message} />
+        <MessageItem
+          key={message.id}
+          message={message}
+          currentUserId={currentUserId}
+        />
       ))}
     </div>
   );
