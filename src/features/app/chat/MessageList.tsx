@@ -41,9 +41,20 @@ export default function MessageList({
       );
     };
 
+    const handleMessageDeleted = (message: WorkspaceMessage) => {
+      console.log("Received message-deleted:", message);
+
+      setLiveMessages((currentMessages) =>
+        currentMessages.map((currentMessage) =>
+          currentMessage.id === message.id ? message : currentMessage,
+        ),
+      );
+    };
+
     socket.on("connect", handleConnect);
     socket.on("new-message", handleNewMessage);
     socket.on("message-updated", handleMessageUpdated);
+    socket.on("message-deleted", handleMessageDeleted);
 
     if (socket.connected) {
       socket.emit("join-conversation", conversationId);
@@ -53,6 +64,7 @@ export default function MessageList({
       socket.off("connect", handleConnect);
       socket.off("new-message", handleNewMessage);
       socket.off("message-updated", handleMessageUpdated);
+      socket.off("message-deleted", handleMessageDeleted);
     };
   }, [conversationId]);
 

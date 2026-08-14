@@ -3,7 +3,19 @@
 import { useState } from "react";
 import { WorkspaceMessage } from "@/types/chat";
 import { editMessage } from "@/actions/editMessage";
+import { deleteMessage } from "@/actions/deleteMessage";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type MessageItemProps = {
   message: WorkspaceMessage;
@@ -38,6 +50,18 @@ export default function MessageItem({
     }
   };
 
+  const handleDelete = async () => {
+    try {
+      setLoading(true);
+
+      await deleteMessage(message.id);
+    } catch (error) {
+      console.error("Failed to delete message:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleCancel = () => {
     setContent(message.content);
     setEditing(false);
@@ -47,7 +71,11 @@ export default function MessageItem({
     <div className="p-2">
       <strong>{message.sender.name}</strong>
 
-      {editing ? (
+      {message.isDeleted ? (
+        <p className="text-muted-foreground italic">
+          This message was deleted.
+        </p>
+      ) : editing ? (
         <div className="space-y-2">
           <input
             value={content}
@@ -76,9 +104,47 @@ export default function MessageItem({
           <p>{message.content}</p>
 
           {isOwner && (
-            <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
-              Edit
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setEditing(true)}
+              >
+                Edit
+              </Button>
+
+              <AlertDialog>
+                <AlertDialogTrigger
+                  render={
+                    <Button variant="ghost" size="sm" disabled={loading} />
+                  }
+                >
+                  Delete
+                </AlertDialogTrigger>
+
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete this message?</AlertDialogTitle>
+
+                    <AlertDialogDescription>
+                      This message will be marked as deleted for everyone in the
+                      conversation.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+
+                    <AlertDialogAction
+                      onClick={handleDelete}
+                      disabled={loading}
+                    >
+                      {loading ? "Deleting..." : "Delete"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           )}
         </>
       )}
