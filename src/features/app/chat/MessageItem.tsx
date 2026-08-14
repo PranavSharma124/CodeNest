@@ -5,6 +5,9 @@ import { WorkspaceMessage } from "@/types/chat";
 import { editMessage } from "@/actions/editMessage";
 import { deleteMessage } from "@/actions/deleteMessage";
 import { Button } from "@/components/ui/button";
+import ReactMarkdown from "react-markdown";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -77,11 +80,13 @@ export default function MessageItem({
         </p>
       ) : editing ? (
         <div className="space-y-2">
-          <input
+          <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
             disabled={loading}
-            className="w-full rounded-md border px-2 py-1"
+            rows={5}
+            className="w-full resize-y rounded-md border px-3 py-2 outline-none"
+            placeholder="Edit your message..."
           />
 
           <div className="flex gap-2">
@@ -101,7 +106,32 @@ export default function MessageItem({
         </div>
       ) : (
         <>
-          <p>{message.content}</p>
+          <ReactMarkdown
+            components={{
+              code({ className, children, ...props }) {
+                const match = /language-(\w+)/.exec(className || "");
+
+                return match ? (
+                  <SyntaxHighlighter
+                    style={oneDark}
+                    language={match[1]}
+                    PreTag="div"
+                  >
+                    {String(children).replace(/\n$/, "")}
+                  </SyntaxHighlighter>
+                ) : (
+                  <code
+                    className="rounded bg-muted px-1 py-0.5 text-sm"
+                    {...props}
+                  >
+                    {children}
+                  </code>
+                );
+              },
+            }}
+          >
+            {message.content}
+          </ReactMarkdown>
 
           {isOwner && (
             <div className="flex gap-2">
