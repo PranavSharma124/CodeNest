@@ -1,16 +1,16 @@
 # CodeNest
 
-> A real-time developer collaboration platform built with Next.js.
+CodeNest is a real-time developer collaboration platform built with Next.js.
 
-CodeNest is a full-stack collaboration platform designed for developers to create workspaces, collaborate with other developers, and communicate through direct messages and real-time conversations.
+The goal of CodeNest is to provide developers with a shared environment where they can create workspaces, collaborate with other developers, communicate through direct and workspace messaging, and use an AI-powered code review assistant.
 
-The project is being built as a production-style application rather than a simple tutorial project, with a focus on learning real-world full-stack architecture, authentication, authorization, relational databases, and real-time communication.
+The project is being developed as a production-style full-stack application rather than a simple tutorial project.
 
 ---
 
-## ✨ Features
+## Features
 
-### 🔐 Authentication
+### Authentication
 
 - User registration and login
 - Session-based authentication
@@ -18,8 +18,9 @@ The project is being built as a production-style application rather than a simpl
 - Sign out functionality
 - Dynamic user profile/avatar
 - Server-side authentication checks
+- Server-side authorization
 
-### 🏢 Workspaces
+### Workspaces
 
 - Create workspaces
 - View workspaces in the sidebar
@@ -30,34 +31,73 @@ The project is being built as a production-style application rather than a simpl
   - Admin
   - Member
 - Owner-only workspace deletion
+- Members can leave workspaces
+- Owners cannot leave their own workspace
 - Real-time workspace membership updates
 - Real-time workspace deletion updates
-- Automatic redirection when an active workspace is deleted
+- Automatic sidebar updates when membership changes
+- Automatic redirect when an active workspace is deleted or left
 
-### 💬 Direct Messaging
+### Messaging
 
-- Start direct conversations with other users
-- View direct conversations in the sidebar
+- Workspace conversations
+- Direct messages between users
 - Persistent message storage
 - Real-time message delivery
+- Edit your own messages
+- Delete your own messages
+- Deleted-message state
+- Markdown rendering
+- Code block rendering
+- Syntax highlighting
 
-### ⚡ Real-Time Communication
+### Search
 
-CodeNest uses **Socket.IO** for real-time communication.
+- Search users
+- Search workspaces
+- Search direct conversations
+- Search results displayed through the application search interface
 
-Currently implemented real-time functionality includes:
+### CodeNest AI
 
-- Real-time messages
-- Conversation-specific rooms
+CodeNest AI is a separate application feature from Direct Messages.
+
+It provides an AI-powered code review assistant using Google's Gemini API.
+
+Users can:
+
+- Paste code into CodeNest AI
+- Request an AI code review
+- Receive a summary
+- Receive an overall severity level
+- View identified issues
+- View explanations
+- Receive improvement suggestions
+- Receive improved code
+
+The AI response uses structured output rather than relying on arbitrary text responses.
+
+The Gemini API key is kept server-side.
+
+### Real-Time Communication
+
+CodeNest uses Socket.IO for real-time communication.
+
+Currently implemented real-time events include:
+
+- New messages
+- Workspace membership changes
+- Workspace deletion
+- Workspace leaving
+- Conversation rooms
 - User-specific Socket.IO rooms
-- Real-time workspace membership updates
-- Real-time workspace deletion updates
-- Authenticated socket connections
-- Authorized conversation access
 
-### 🎨 User Interface
+### User Interface
 
 - Next.js App Router
+- React
+- TypeScript
+- Responsive application layout
 - Sidebar navigation
 - Workspace navigation
 - Direct message navigation
@@ -65,22 +105,27 @@ Currently implemented real-time functionality includes:
 - Add members dialog
 - Workspace deletion confirmation
 - User profile menu
-- Search bar UI
+- Search bar
+- CodeNest AI interface
 - shadcn/ui components
 - Lucide icons
+- Loading states
+- Error states
 
 ---
 
-# 🛠️ Tech Stack
+# Tech Stack
 
 ## Frontend
 
-- [Next.js](https://nextjs.org/)
-- [React](https://react.dev/)
-- [TypeScript](https://www.typescriptlang.org/)
-- [Tailwind CSS](https://tailwindcss.com/)
-- [shadcn/ui](https://ui.shadcn.com/)
-- [Lucide React](https://lucide.dev/)
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+- shadcn/ui
+- Lucide React
+- React Markdown
+- React Syntax Highlighter
 
 ## Backend
 
@@ -88,79 +133,101 @@ Currently implemented real-time functionality includes:
 - Node.js
 - Socket.IO
 
+CodeNest currently uses Next.js server-side functionality rather than a separate Express backend.
+
 ## Database
 
 - PostgreSQL
 - Prisma ORM
 
+PostgreSQL is currently the primary application database.
+
 ## Authentication
 
 - Better Auth
 - Email/password authentication
-- Cookie-based sessions
+- Cookie/session-based authentication
+- Prisma adapter
+
+## AI
+
+- Google Gemini API
+- `@google/genai`
+- Structured JSON output
 
 ## Other Technologies
 
-- `@better-auth/prisma-adapter`
-- `@prisma/client`
-- `socket.io-client`
-- `tsx`
+- Socket.IO
+- Socket.IO Client
+- Zod
+- TypeScript
+- ESLint
+- tsx
 
 ---
 
-# 🏗️ Architecture
+# Architecture
 
-CodeNest uses a full-stack Next.js architecture with PostgreSQL as the persistent data layer and Socket.IO for real-time communication.
+CodeNest uses a full-stack Next.js architecture with PostgreSQL as the primary persistent data layer and Socket.IO for real-time communication.
 
-A simplified view of the application:
+CodeNest AI is integrated as a separate server-side AI service.
+
+A simplified architecture is:
 
 ```text
                          Browser
-                            │
-                            ▼
-                      ┌───────────┐
-                      │  Next.js  │
-                      │    App    │
-                      └─────┬─────┘
-                            │
-               ┌────────────┴────────────┐
-               │                         │
-               ▼                         ▼
-      Server Components          Client Components
-               │                         │
-               │                         ▼
-               │                    Socket.IO
-               │                         │
-               ▼                         ▼
-        Server Actions            Real-Time Events
-               │
-               ▼
-           ┌────────┐
-           │ Prisma │
-           └────┬───┘
-                │
-                ▼
-          ┌───────────┐
-          │ PostgreSQL│
-          └───────────┘
+                            |
+                            v
+                    Next.js Application
+                            |
+              +-------------+-------------+
+              |                           |
+              v                           v
+       Server Components           Client Components
+              |                           |
+              |                           +------> Socket.IO Client
+              |                                      |
+              v                                      v
+       Server Actions                         Real-Time Events
+              |
+        +-----+------+
+        |            |
+        v            v
+   Better Auth     Prisma
+        |            |
+        |            v
+        |       PostgreSQL
+        |
+        v
+     Sessions
+
+
+                    CodeNest AI
+                         |
+                         v
+                  Server Action
+                         |
+                         v
+                    Gemini API
+                         |
+                         v
+                Structured JSON
+                         |
+                         v
+                    React UI
 ```
-
-Authentication is handled through **Better Auth**.
-
-Real-time Socket.IO connections are authenticated using the user's Better Auth session.
 
 ---
 
-# 🗄️ Database
+# Database
 
-CodeNest uses **PostgreSQL** with **Prisma ORM**.
+CodeNest currently uses PostgreSQL with Prisma ORM.
 
-The current database contains models for:
+The database contains authentication and application data for concepts such as:
 
 - Users
 - Sessions
 - Accounts
-- Verification records
 - Workspaces
 - Workspace members
 - Conversations
@@ -171,31 +238,30 @@ The current database contains models for:
 
 ```text
 User
- │
- ├── Session
- │
- ├── Account
- │
- ├── WorkspaceMember
- │
- ├── Message
- │
- └── ConversationParticipant
-```
+ |
+ +-- Session
+ |
+ +-- Account
+ |
+ +-- WorkspaceMember
+ |
+ +-- Message
+ |
+ +-- ConversationParticipant
 
-```text
+
 Workspace
- │
- ├── WorkspaceMember
- │
- └── Conversation
-       │
-       ├── Message
-       │
-       └── ConversationParticipant
+ |
+ +-- WorkspaceMember
+ |
+ +-- Conversation
+       |
+       +-- Message
+       |
+       +-- ConversationParticipant
 ```
 
-Workspace membership uses three roles:
+Workspace membership connects users to workspaces and contains a role:
 
 ```text
 OWNER
@@ -203,67 +269,99 @@ ADMIN
 MEMBER
 ```
 
-A user can only have one membership record for a particular workspace.
+A user/workspace membership is unique.
 
 ---
 
-# 🔑 Authentication Flow
+# Authentication Flow
 
-CodeNest uses **Better Auth** for authentication.
+CodeNest uses Better Auth for authentication.
 
-A simplified authentication flow looks like this:
+A simplified authentication flow is:
 
 ```text
 User
- │
- │ Login / Register
- ▼
+ |
+ | Login / Register
+ v
 Better Auth
- │
- ▼
+ |
+ v
 Session
- │
- ▼
+ |
+ v
 Cookie
- │
- ▼
+ |
+ v
 Authenticated Request
- │
- ▼
-Server
+ |
+ v
+Next.js Server
 ```
 
-Protected Server Actions retrieve the current session before performing database operations.
+Protected server actions retrieve the current session before performing sensitive operations.
 
-For example, deleting a workspace verifies:
-
-1. The user is authenticated.
-2. The user belongs to the workspace.
-3. The user has the `OWNER` role.
-
-Authorization is therefore enforced on the server rather than relying only on frontend UI restrictions.
+The frontend is not treated as the security boundary.
 
 ---
 
-# ⚡ Real-Time Architecture
+# Authorization
 
-Socket.IO is used for real-time communication.
+Authorization is enforced on the server.
 
-The application maintains an application-level Socket.IO connection while the authenticated user is inside the application.
+For example, deleting a workspace requires:
+
+```text
+1. User must be authenticated
+2. User must belong to the workspace
+3. User must have the OWNER role
+```
+
+Conceptually:
+
+```text
+Request
+   |
+   v
+Get Session
+   |
+   +---- No session ----> Unauthorized
+   |
+   v
+Find Workspace Membership
+   |
+   +---- No membership ----> Unauthorized
+   |
+   v
+Check Role
+   |
+   +---- Not OWNER ----> Forbidden
+   |
+   v
+Delete Workspace
+```
+
+This prevents users from bypassing frontend restrictions by directly invoking server functionality.
+
+---
+
+# Real-Time Architecture
+
+Socket.IO provides real-time communication.
 
 ## Conversation Rooms
 
-When a user opens a conversation, their socket joins a conversation-specific room:
+When a user opens a conversation, the socket joins a conversation-specific room:
 
 ```text
 conversation:<conversationId>
 ```
 
-Messages can then be sent to users connected to that conversation.
+Messages can then be broadcast to users connected to that conversation.
 
 ## User Rooms
 
-Each authenticated socket also joins a user-specific room:
+Authenticated users can also use a user-specific room:
 
 ```text
 user:<userId>
@@ -275,121 +373,372 @@ For example:
 
 ```text
 Account A adds Account B
-        │
-        ▼
+        |
+        v
 WorkspaceMember created
-        │
-        ▼
-     Socket.IO
-        │
-        ▼
+        |
+        v
+Socket.IO
+        |
+        v
 user:<Account B>
-        │
-        ▼
+        |
+        v
 workspace-added
-        │
-        ▼
-Account B's Sidebar
-        │
-        ▼
-     Refresh
+        |
+        v
+Account B sidebar updates
 ```
-
-This allows Account B's workspace list to update without requiring a manual page refresh.
 
 ---
 
-# 🏢 Workspace Lifecycle
+# Workspace Lifecycle
 
 ## Creating a Workspace
 
 ```text
 Create Workspace
-       │
-       ▼
+       |
+       v
+Authenticate User
+       |
+       v
 Create Workspace
-       │
-       ├── Create Workspace Conversation
-       │
-       └── Create OWNER Membership
-       │
-       ▼
+       |
+       +----> Create Workspace Conversation
+       |
+       +----> Create OWNER Membership
+       |
+       v
 Navigate to Workspace
 ```
 
 ## Adding a Member
 
 ```text
-Owner / Admin
-      │
-      ▼
+Owner/Admin
+     |
+     v
 Select User
-      │
-      ▼
+     |
+     v
 Server Authorization
-      │
-      ▼
+     |
+     v
 Create WorkspaceMember
-      │
-      ▼
-Emit "workspace-added"
-      │
-      ▼
-User's Sidebar Refreshes
+     |
+     v
+Emit workspace-added
+     |
+     v
+User's Sidebar Updates
+```
+
+## Leaving a Workspace
+
+Members can leave workspaces.
+
+Owners cannot leave their own workspace.
+
+```text
+Member
+   |
+   v
+Leave Workspace
+   |
+   +----> Verify Authentication
+   |
+   +----> Verify Membership
+   |
+   +----> Check Role
+   |
+   +----> Reject OWNER
+   |
+   v
+Delete WorkspaceMember
+   |
+   v
+Emit workspace-left
+   |
+   v
+Sidebar Removes Workspace
 ```
 
 ## Deleting a Workspace
 
-Only the workspace owner can delete a workspace.
+Only the owner can delete a workspace.
 
 ```text
 Owner
- │
- ▼
+ |
+ v
 Delete Workspace
- │
- ├── Verify Authentication
- │
- ├── Verify Membership
- │
- ├── Verify OWNER Role
- │
- ├── Find Workspace Members
- │
- ├── Delete Workspace
- │
- └── Notify Members
- │
- ▼
+ |
+ +----> Verify Authentication
+ |
+ +----> Verify Membership
+ |
+ +----> Verify OWNER Role
+ |
+ +----> Delete Workspace
+ |
+ +----> Notify Connected Members
+ |
+ v
 workspace-deleted
+ |
+ v
+Sidebar Updates
+ |
+ v
+Active Users Redirect
 ```
-
-Users currently viewing the deleted workspace are automatically redirected to the dashboard.
-
-The deleted workspace is also removed from affected users' sidebars without requiring a manual refresh.
 
 ---
 
-# 📁 Project Structure
+# Messaging Architecture
 
-CodeNest uses a feature-oriented structure alongside Next.js's App Router.
+CodeNest supports both workspace conversations and direct messages.
+
+The same shared chat interface is used for both.
+
+```text
+Chat
+ |
+ +-- ChatHeader
+ |
+ +-- MessageList
+ |     |
+ |     +-- MessageItem
+ |
+ +-- MessageInput
+```
+
+## Sending a Message
+
+```text
+MessageInput
+      |
+      v
+sendMessage()
+      |
+      v
+Authenticate User
+      |
+      v
+Authorize Conversation Access
+      |
+      v
+Prisma
+      |
+      v
+PostgreSQL
+      |
+      v
+Socket.IO
+      |
+      v
+conversation:<id>
+      |
+      v
+MessageList
+      |
+      v
+MessageItem
+```
+
+Messages are persisted in PostgreSQL and then delivered to connected users through Socket.IO.
+
+---
+
+# Message Editing and Deletion
+
+Users can edit and delete their own messages.
+
+The frontend checks the message sender to display the controls, but the actual authorization is performed on the server.
+
+```text
+User
+ |
+ v
+Edit/Delete
+ |
+ v
+Server Action
+ |
+ v
+Authentication
+ |
+ v
+Authorization
+ |
+ v
+Database Update
+```
+
+Deleted messages are represented in the UI as:
+
+```text
+This message was deleted.
+```
+
+---
+
+# Search
+
+CodeNest contains a global search interface.
+
+Search can return:
+
+- Users
+- Workspaces
+- Direct conversations
+
+The general flow is:
+
+```text
+User enters query
+       |
+       v
+SearchBar
+       |
+       v
+searchApp()
+       |
+       v
+Server
+       |
+       v
+Search Results
+       |
+       +---- Users
+       +---- Workspaces
+       +---- Direct Messages
+```
+
+---
+
+# CodeNest AI
+
+CodeNest AI is intentionally separate from Direct Messages.
+
+Direct Messages represent:
+
+```text
+User <----> User
+```
+
+CodeNest AI represents:
+
+```text
+User
+  |
+  v
+CodeNest AI
+  |
+  v
+Gemini
+  |
+  v
+Structured AI Response
+```
+
+The AI is therefore treated as an application capability rather than a fake user inside the messaging system.
+
+## AI Flow
+
+```text
+CodeNest AI UI
+      |
+      v
+reviewCode()
+      |
+      v
+Authenticate User
+      |
+      v
+Validate Input
+      |
+      v
+Build Prompt
+      |
+      v
+Gemini API
+      |
+      v
+Structured JSON
+      |
+      v
+React UI
+```
+
+## AI Response
+
+The AI returns structured data containing:
+
+```json
+{
+  "summary": "...",
+  "severity": "high",
+  "issues": [
+    {
+      "title": "...",
+      "explanation": "...",
+      "suggestion": "..."
+    }
+  ],
+  "improvedCode": "..."
+}
+```
+
+This allows the frontend to render each part of the review independently.
+
+## AI Security
+
+The Gemini API key is stored in an environment variable:
+
+```env
+GEMINI_API_KEY="your-key"
+```
+
+The key is accessed only by server-side code.
+
+It is intentionally not exposed through:
+
+```text
+NEXT_PUBLIC_GEMINI_API_KEY
+```
+
+---
+
+# Project Structure
+
+The project uses feature-oriented organization alongside Next.js App Router.
+
+A simplified structure is:
 
 ```text
 src/
 ├── actions/
 │   ├── addWorkspaceMember.ts
-│   ├── createWorkspace...
+│   ├── createWorkspace.ts
 │   ├── deleteWorkspace.ts
+│   ├── deleteMessage.ts
+│   ├── editMessage.ts
 │   ├── getDirectConversation.ts
 │   ├── getDirectConversations.ts
 │   ├── getUsers.ts
 │   ├── getWorkspaceChat.ts
 │   ├── getWorkspaceMembers.ts
 │   ├── getWorkspaces.ts
-│   └── sendMessage.ts
+│   ├── leaveWorkspace.ts
+│   ├── searchApp.ts
+│   ├── sendMessage.ts
+│   └── reviewCode.ts
 │
 ├── app/
 │   ├── (app)/
+│   │   ├── ai/
 │   │   ├── dashboard/
 │   │   ├── DM/
 │   │   ├── workspace/
@@ -406,6 +755,7 @@ src/
 │
 ├── features/
 │   ├── app/
+│   │   ├── ai/
 │   │   ├── chat/
 │   │   ├── header/
 │   │   ├── sidebar/
@@ -416,6 +766,7 @@ src/
 ├── lib/
 │   ├── auth.ts
 │   ├── auth-client.ts
+│   ├── gemini.ts
 │   ├── prisma.ts
 │   ├── socket.ts
 │   └── socket-server.ts
@@ -423,17 +774,17 @@ src/
 └── types/
 ```
 
-> The project structure will continue to evolve as new features are implemented.
+The exact structure may continue to evolve as new features are implemented.
 
 ---
 
-# 🚀 Getting Started
+# Getting Started
 
 ## 1. Clone the Repository
 
 ```bash
 git clone https://github.com/PranavSharma124/CodeNest.git
-cd CodeNest
+cd codenest
 ```
 
 ## 2. Install Dependencies
@@ -444,17 +795,20 @@ npm install
 
 ## 3. Configure Environment Variables
 
-Create a `.env` file in the project root.
+Create or configure your `.env` file.
+
+Required environment variables include the PostgreSQL connection and authentication configuration.
 
 Example:
 
 ```env
 DATABASE_URL="your-postgresql-connection-string"
+GEMINI_API_KEY="your-gemini-api-key"
 ```
 
-Add any other environment variables required by your local configuration.
+Use the actual environment variables required by the current project configuration.
 
-> **Never commit `.env` to Git.**
+Do not commit `.env` to Git.
 
 ## 4. Set Up the Database
 
@@ -464,7 +818,7 @@ Generate the Prisma client:
 npx prisma generate
 ```
 
-Run the database migrations:
+Run database migrations:
 
 ```bash
 npx prisma migrate dev
@@ -476,41 +830,49 @@ npx prisma migrate dev
 npm run dev
 ```
 
-The application will run locally using the project's Next.js/Socket.IO server.
+The application will run using the project's Next.js/Socket.IO server.
 
 ---
 
-# 💻 Development Commands
+# Development Commands
 
-Start the development server:
+### Start Development Server
 
 ```bash
 npm run dev
 ```
 
-Create a production build:
+### Create Production Build
 
 ```bash
 npm run build
 ```
 
-Start the production server:
+### Start Production Server
 
 ```bash
 npm run start
 ```
 
-Run ESLint:
+### Run ESLint
 
 ```bash
 npm run lint
 ```
 
+### Format Code
+
+If Prettier is configured in the project:
+
+```bash
+npx prettier --write .
+```
+
 ---
 
-# 📈 V1 Progress
+# Current V1 Progress
 
-## ✅ Completed
+## Completed
 
 - [x] Next.js project foundation
 - [x] TypeScript configuration
@@ -529,56 +891,123 @@ npm run lint
 - [x] Workspace roles
 - [x] Workspace member list
 - [x] Add people to workspace
+- [x] Leave workspace
 - [x] Owner-only workspace deletion
 - [x] Direct messages
+- [x] Workspace messaging
 - [x] Persistent messages
-- [x] Socket.IO integration
 - [x] Real-time messaging
 - [x] Socket authentication
 - [x] Conversation authorization
 - [x] Real-time workspace membership updates
 - [x] Real-time workspace deletion updates
-- [x] Automatic redirect when an active workspace is deleted
-
-## 🚧 In Progress / Planned
-
-- [ ] Message editing
-- [ ] Message deletion
-- [ ] Search functionality
-- [ ] Typing indicators
-- [ ] Online presence
-- [ ] Reactions
-- [ ] Markdown messages
-- [ ] Code syntax highlighting
-- [ ] File attachments
-- [ ] Image uploads
-- [ ] Responsive/mobile improvements
-- [ ] Additional UI polish
-- [ ] Accessibility improvements
-- [ ] Deployment
-- [ ] Final documentation
+- [x] Automatic workspace redirect
+- [x] Message editing
+- [x] Message deletion
+- [x] Deleted message state
+- [x] Markdown messages
+- [x] Code blocks
+- [x] Syntax highlighting
+- [x] Search
+- [x] CodeNest AI
+- [x] Gemini API integration
+- [x] AI authentication
+- [x] AI input validation
+- [x] AI prompt engineering
+- [x] Structured AI outputs
+- [x] AI code review UI
 
 ---
 
-# 🔒 Security
+# In Progress / Planned
 
-CodeNest performs authorization checks on the server.
+### Product Features
+
+- [ ] Profile image uploads
+- [ ] Notifications
+- [ ] Typing indicators
+- [ ] Online presence
+- [ ] File attachments
+- [ ] Responsive/mobile improvements
+- [ ] Additional accessibility and UI polish
+
+### AI
+
+- [ ] Streaming responses
+- [ ] AI tool/function calling
+- [ ] Prompt injection defenses
+- [ ] Token and cost monitoring
+- [ ] AI evaluation sets
+- [ ] RAG / project context
+
+### Backend / Infrastructure
+
+- [ ] MongoDB feature
+- [ ] REST API endpoints where appropriate
+- [ ] Additional request validation
+- [ ] Rate limiting
+- [ ] Automated testing
+- [ ] Docker
+- [ ] Deployment
+
+---
+
+# Security
+
+CodeNest treats the frontend as an untrusted client.
+
+Authorization is enforced on the server.
 
 Examples include:
 
 - Users must be authenticated to access protected actions.
 - Users must belong to a workspace before accessing its members.
-- Only workspace owners can delete workspaces.
-- Only authorized workspace members can access workspace conversations.
-- Socket connections are authenticated using the Better Auth session.
-- Socket conversation joins are authorized against the database.
-- Workspace membership uses a unique user/workspace constraint.
+- Only owners can delete workspaces.
+- Workspace owners cannot leave their own workspace.
+- Only authorized users can access workspace conversations.
+- Users can only edit/delete their own messages.
+- Socket conversation joins are authorized.
+- Gemini credentials remain server-side.
+- AI requests require authentication.
+- AI input is validated before being sent to Gemini.
+- `.env` is not committed to Git.
 
-Frontend restrictions are **not** treated as the security boundary.
+Frontend restrictions are not treated as the security boundary.
 
 ---
 
-# 🎯 Project Goals
+# Engineering Practices
+
+CodeNest is being developed with production-oriented engineering practices including:
+
+- TypeScript
+- Git version control
+- Environment variable management
+- Server-side authorization
+- Feature-oriented organization
+- Prisma ORM
+- Relational database design
+- Real-time communication
+- Structured AI responses
+- Loading and error states
+- Server-side validation
+- Reusable React components
+
+---
+
+# Documentation
+
+The project includes detailed technical documentation:
+
+- **PRD** — Product Requirements Document
+- **HLD** — High-Level Design
+- **LLD** — Low-Level Design
+
+These documents describe the product requirements, system architecture, implementation details, data flow, authentication, authorization, messaging, Socket.IO architecture, and CodeNest AI.
+
+---
+
+# Project Goals
 
 CodeNest is being developed as a portfolio-quality full-stack application.
 
@@ -590,32 +1019,31 @@ The main goals are:
 4. Practice authentication and authorization.
 5. Learn relational database design.
 6. Build real-time features with Socket.IO.
-7. Develop production-oriented engineering habits.
-8. Create a project that can be demonstrated on a résumé and GitHub.
+7. Integrate an LLM into a real application.
+8. Learn structured AI outputs and prompt engineering.
+9. Develop production-oriented engineering habits.
+10. Create a project that can be demonstrated on a résumé and GitHub.
 
 ---
 
-# 📚 Documentation
+# Future Vision
 
-Detailed technical documentation will be created at the completion of V1.
+CodeNest can eventually evolve into a more complete developer collaboration platform with:
 
-The documentation will cover:
-
-- Project architecture
-- Folder and file responsibilities
-- Database schema and relationships
-- Authentication flow
-- Authorization model
-- Server Actions
-- Socket.IO architecture
-- Real-time event flow
-- Workspace lifecycle
-- Messaging lifecycle
-- Important engineering decisions
-- Development and deployment architecture
+- Real-time presence
+- Typing indicators
+- File sharing
+- Project/code context
+- AI-assisted development
+- RAG over project documentation
+- AI tool use
+- Advanced search
+- Notifications
+- Automated testing
+- Production deployment
 
 ---
 
-# 📄 License
+# License
 
 This project is currently being developed as a personal portfolio project.
