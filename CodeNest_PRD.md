@@ -1,222 +1,294 @@
-# CodeNest --- Product Requirements Document (PRD)
+# CodeNest — Product Requirements Document
 
 ## 1. Product Overview
 
-**CodeNest** is a real-time developer collaboration platform built with
-Next.js.
+CodeNest is a developer collaboration platform designed to bring workspace collaboration, real-time communication, direct messaging, and AI-assisted code review into one application.
 
-The product gives developers a shared environment where they can: -
-Create and manage workspaces. - Collaborate with other developers
-through workspace membership. - Communicate through workspace
-conversations and direct messages. - Receive real-time updates without
-manually refreshing the application. - Use CodeNest AI to review and
-improve code.
+The platform allows developers to create and participate in workspaces, communicate with other members, exchange messages in real time, and use CodeNest AI to review source code.
 
-CodeNest is being developed as a production-style portfolio project with
-an emphasis on understanding full-stack architecture, authentication,
-relational data modeling, real-time communication, and AI integration.
+CodeNest AI is a standalone feature of the application. It accepts user-submitted code, sends it to the Gemini API for analysis, and presents a structured code review containing a summary, severity, identified issues, suggestions, and improved code.
 
-------------------------------------------------------------------------
+AI review results are persisted in MongoDB so users can access their previous reviews through review history.
 
 ## 2. Problem Statement
 
-Developers often use several disconnected tools for collaboration,
-communication, and code assistance.
+Developers often use multiple tools for communication, collaboration, and code review. This creates unnecessary context switching between messaging platforms, project collaboration tools, and AI coding assistants.
 
-CodeNest aims to provide a unified developer-focused environment where
-collaboration and communication can happen in one application while also
-providing an AI assistant for code review.
+CodeNest aims to provide a unified developer-focused environment where collaboration and AI-assisted code review are available within the same platform.
 
-------------------------------------------------------------------------
+## 3. Product Goals
 
-## 3. Target Users
+The primary goals of CodeNest are:
 
-Primary users are: - Students learning software development. -
-Individual developers. - Small development teams. - Developers who want
-a shared workspace for communication and collaboration.
+- Provide a collaborative workspace environment for developers.
+- Support communication through workspace conversations and direct messages.
+- Provide persistent and real-time messaging.
+- Provide role-based workspace access.
+- Provide an AI-powered code review feature.
+- Persist AI review history for later access.
+- Demonstrate practical use of both relational and document databases.
+- Provide a portfolio-quality full-stack application.
 
-------------------------------------------------------------------------
+## 4. Target Users
 
-## 4. Product Goals
+The primary users are:
 
-### Primary Goals
+- Students learning software development.
+- Developers working on collaborative projects.
+- Developers who want AI-assisted code review.
+- Development teams that need lightweight workspace communication.
 
-1.  Provide authenticated developer accounts.
-2.  Allow users to create and participate in workspaces.
-3.  Support workspace roles and authorization.
-4.  Provide persistent direct and workspace messaging.
-5.  Provide real-time communication using Socket.IO.
-6.  Provide an AI-powered code review assistant.
-7.  Demonstrate production-oriented full-stack engineering practices.
+## 5. Core Features
 
-### Technical Goals
+### 5.1 Authentication
 
--   Use Next.js and React for the application.
--   Use PostgreSQL and Prisma for relational application data.
--   Use Better Auth for authentication.
--   Use Socket.IO for real-time communication.
--   Use Gemini for AI-powered code review.
--   Protect server-side secrets and enforce authorization on the server.
+CodeNest provides email/password authentication using Better Auth.
 
-------------------------------------------------------------------------
+Authenticated users receive access to protected application functionality.
 
-## 5. Functional Requirements
+Server-side operations verify the authenticated session before performing protected actions.
 
-### Authentication
+## 6. Workspaces
 
-Users must be able to: - Register. - Log in. - Log out. - Maintain an
-authenticated session. - Access protected application functionality only
-when authenticated.
+Users can create and participate in workspaces.
 
-### Workspaces
+Workspace functionality includes:
 
-Users must be able to: - Create workspaces. - View their workspaces. -
-Add members. - View workspace members. - Leave a workspace when they are
-not the owner. - Delete a workspace when they are the owner.
+- Workspace creation.
+- Workspace membership.
+- Viewing workspace members.
+- Adding members.
+- Leaving a workspace.
+- Owner-only workspace deletion.
+- Workspace roles.
 
-Workspace roles: - OWNER - ADMIN - MEMBER
+Supported roles are:
 
-### Messaging
+- OWNER
+- ADMIN
+- MEMBER
 
-Users must be able to: - Send messages. - View persistent messages. -
-Edit their own messages. - Delete their own messages. - Send direct
-messages. - Participate in workspace conversations.
+Workspace membership and authorization are checked server-side.
 
-### Real-Time Communication
+## 7. Messaging
 
-The application must support real-time events including: - New
-messages. - Workspace membership changes. - Workspace deletion. -
-Workspace membership/leave updates. - Conversation-specific socket
-rooms. - User-specific socket rooms.
+CodeNest supports two types of messaging:
 
-### Search
+1. Workspace conversations.
+2. Direct messages.
 
-Users must be able to search application data through the CodeNest
-search interface.
+Messages are persisted and updated in real time using Socket.IO.
 
-### CodeNest AI
+Messaging functionality includes:
 
-Users must be able to: 1. Open CodeNest AI independently from direct
-messages. 2. Paste code into the AI interface. 3. Request a code review.
-4. Receive a structured AI response. 5. View: - Summary - Severity -
-Issues - Explanations - Suggestions - Improved code
+- Sending messages.
+- Persistent message storage.
+- Real-time message delivery.
+- Editing messages.
+- Deleting messages.
+- Deleted-message state.
+- Markdown rendering.
+- Code blocks.
+- Syntax highlighting.
 
-The AI request must be authenticated and the Gemini API key must remain
-server-side.
+Message modification operations are authorized server-side.
 
-------------------------------------------------------------------------
+Users can modify only messages they are authorized to modify.
 
-## 6. Non-Functional Requirements
+## 8. Direct Message Deletion
 
-### Security
+Deleting a direct message is account-specific.
 
--   Authentication must be enforced server-side.
--   Authorization must be enforced server-side.
--   Secrets must not be exposed to the browser.
--   Workspace access must be checked against membership.
--   Owner-only actions must verify the OWNER role.
--   AI input must be validated.
--   AI requests must not be available to unauthenticated users.
+A user deleting a DM removes or hides that message only for their own account. The deletion does not globally remove the message for the other participant.
 
-### Performance
+## 9. Search
 
--   Real-time updates should avoid unnecessary page refreshes.
--   Database queries should retrieve only the required data.
--   The UI should provide loading states during asynchronous operations.
+CodeNest provides search functionality for application data including:
 
-### Reliability
+- Users.
+- Workspaces.
+- Direct conversations.
 
--   Server operations should handle errors.
--   Invalid operations should return meaningful errors.
--   Real-time listeners should be cleaned up when components unmount.
+## 10. CodeNest AI
 
-### Maintainability
+CodeNest AI is a standalone application feature available through:
 
--   Features should be organized into reusable components and server
-    actions.
--   TypeScript should be used throughout the application.
--   Database access should be centralized through Prisma.
--   AI integration should be isolated from presentation components.
+`/ai`
 
-------------------------------------------------------------------------
+It is not modeled as a fake user or as a direct-message conversation.
 
-## 7. User Stories
+The AI workflow is:
 
-### Workspace
+User → CodeNest AI → Gemini → Structured Review
 
--   As a developer, I want to create a workspace so that I can
-    collaborate with other developers.
--   As a workspace owner, I want to add members so that other developers
-    can participate.
--   As a workspace member, I want to leave a workspace so that I can
-    remove myself from collaboration.
--   As a workspace owner, I want to delete the workspace when it is no
-    longer needed.
+The user submits source code for review.
 
-### Messaging
+The server sends the request to Gemini using a server-side API key.
 
--   As a developer, I want to send messages in real time.
--   As a developer, I want to edit my own messages.
--   As a developer, I want to delete my own messages.
--   As a developer, I want to send direct messages to another user.
+The AI produces structured review information including:
 
-### AI
+- Title.
+- Summary.
+- Severity.
+- Issues.
+- Improved code.
 
--   As a developer, I want CodeNest AI to review my code.
--   As a developer, I want AI feedback to be structured and easy to
-    understand.
--   As a developer, I want AI to suggest an improved version of my code.
+Each issue contains:
 
-------------------------------------------------------------------------
+- Title.
+- Explanation.
+- Suggestion.
 
-## 8. V1 Scope
+The AI is instructed to review code and provide recommendations without claiming that the code was actually executed or tested.
 
-### Included
+## 11. AI Review History
 
--   Authentication
--   Workspaces
--   Workspace membership
--   Workspace roles
--   Workspace deletion
--   Leave workspace
--   Direct messaging
--   Workspace messaging
--   Message editing/deletion
--   Search
--   Socket.IO real-time communication
--   Markdown/code block rendering
--   CodeNest AI code review
--   Structured AI responses
+CodeNest persists AI review results in MongoDB.
 
-### Deferred
+Each review stores:
 
--   Reactions
--   Mentions
--   Advanced notifications
--   File attachments
--   Advanced presence
--   Advanced AI/RAG
--   Payments
--   Other non-essential integrations
+- User ID.
+- Review title.
+- Source code.
+- Summary.
+- Severity.
+- Issues.
+- Improved code.
+- Creation timestamp.
+- Update timestamp.
 
-------------------------------------------------------------------------
+Users can:
 
-## 9. Success Criteria
+- View their review history.
+- Rename reviews.
+- Delete reviews.
 
-CodeNest V1 is successful when: - Users can authenticate and access
-protected functionality. - Workspace authorization is correctly
-enforced. - Messages persist in PostgreSQL. - Real-time events work
-without manual refreshes. - Users can manage workspace membership. -
-Users can edit/delete their own messages. - CodeNest AI can securely
-call Gemini and return structured code reviews. - The architecture and
-implementation can be clearly documented.
+Review history is scoped to the authenticated user.
 
-------------------------------------------------------------------------
+Users cannot modify or delete another user's reviews.
 
-## 10. Future Scope
+## 12. MongoDB Usage
 
-Potential future improvements: - File and image uploads. - Online
-presence. - Typing indicators. - Message reactions. - Mentions. - AI
-streaming. - AI tool use. - RAG over project documentation/code. - AI
-evaluation sets. - Docker deployment. - Automated testing. - Redis-based
-caching/presence.
+MongoDB is intentionally used for AI review history.
+
+PostgreSQL remains the primary relational database for core application data, while MongoDB stores AI review documents.
+
+Issues are embedded inside the CodeReview document because they belong directly to a single review and do not currently have an independent lifecycle.
+
+The PostgreSQL user is referenced from MongoDB using the user's ID rather than duplicating the complete user record.
+
+The `userId` field is indexed because review history is commonly queried by authenticated user.
+
+## 13. Data Architecture
+
+CodeNest uses two databases for different responsibilities.
+
+### PostgreSQL
+
+Stores core relational application data such as:
+
+- Users.
+- Authentication/session-related data.
+- Workspaces.
+- Workspace memberships.
+- Conversations.
+- Conversation participants.
+- Messages.
+
+### MongoDB
+
+Stores:
+
+- AI code review history.
+
+This separation allows CodeNest to demonstrate both relational and document-oriented database design.
+
+## 14. Security Requirements
+
+Security requirements include:
+
+- Authentication for protected operations.
+- Server-side authorization.
+- Workspace membership verification.
+- Role verification where required.
+- User ownership verification for AI reviews.
+- Server-side storage of Gemini API credentials.
+- Environment variables for secrets.
+- Validation of AI input.
+- Protection against unauthorized modification of other users' data.
+
+The frontend is not considered an authorization boundary.
+
+## 15. Real-Time Requirements
+
+CodeNest uses Socket.IO for real-time communication.
+
+Conversation-specific rooms are used for messaging.
+
+User-specific rooms are used for user-level workspace events.
+
+Relevant real-time events include:
+
+- New messages.
+- Workspace added.
+- Workspace left.
+- Workspace deleted.
+
+Socket listeners are cleaned up appropriately to avoid duplicate listeners.
+
+## 16. Non-Functional Requirements
+
+CodeNest should provide:
+
+- Secure server-side authorization.
+- Persistent application data.
+- Real-time communication.
+- Maintainable TypeScript code.
+- Clear separation of application responsibilities.
+- Reliable error handling.
+- Responsive user interfaces.
+- Secure environment variable handling.
+
+## 17. Current Scope
+
+The current V1 includes:
+
+- Authentication.
+- User profiles/avatar.
+- Workspaces.
+- Workspace membership.
+- Workspace roles.
+- Direct messaging.
+- Workspace messaging.
+- Real-time communication.
+- Message editing/deletion.
+- Search.
+- CodeNest AI.
+- Gemini integration.
+- Structured AI output.
+- MongoDB AI review persistence.
+- AI review history.
+- Review rename.
+- Review deletion.
+
+## 18. Deferred Features
+
+The following features are intentionally deferred:
+
+- Reactions.
+- Mentions.
+- File uploads.
+- Notifications.
+- Presence.
+- Typing indicators.
+- AI streaming.
+- Function/tool calling.
+- RAG.
+- LLM evaluation sets.
+- Token/cost monitoring.
+- Rate limiting.
+- Automated testing.
+- Docker.
+- Production deployment.
+
+These are not considered implemented features of the current V1.

@@ -1,454 +1,350 @@
-# CodeNest --- High-Level Design (HLD)
+# CodeNest — High-Level Design
 
-## 1. System Overview
+## 1. Introduction
 
-CodeNest is a full-stack web application built around Next.js.
+CodeNest is a full-stack developer collaboration platform built with Next.js, React, TypeScript, PostgreSQL, MongoDB, Better Auth, Prisma, Socket.IO, and the Gemini API.
 
-The system combines: - React client components. - Next.js server
-components and server actions. - PostgreSQL. - Prisma ORM. - Better
-Auth. - Socket.IO. - Gemini AI.
-
-------------------------------------------------------------------------
+The system combines relational application data with document-oriented AI review history.
 
 ## 2. High-Level Architecture
 
-``` text
-                         ┌─────────────────────┐
-                         │       Browser       │
-                         │  React / Next.js UI │
-                         └──────────┬──────────┘
+```text
+                         ┌──────────────────────┐
+                         │       Browser        │
+                         │ React / Next.js UI   │
+                         └──────────┬───────────┘
                                     │
-                    ┌───────────────┴───────────────┐
-                    │                               │
-                    ▼                               ▼
-             Next.js Server                   Socket.IO Client
-                    │                               │
-          ┌─────────┴─────────┐                     │
-          │                   │                     │
-          ▼                   ▼                     ▼
-   Server Components     Server Actions       Socket.IO Server
-          │                   │                     │
-          │                   ▼                     │
-          │                Better Auth              │
-          │                   │                     │
-          ▼                   ▼                     ▼
-       Prisma             PostgreSQL          Real-Time Events
-          │
-          ▼
-     Application Data
+                                    ▼
+                         ┌──────────────────────┐
+                         │   Next.js Application│
+                         │                      │
+                         │ Server Components   │
+                         │ Client Components   │
+                         │ Server Actions      │
+                         └──────┬───────┬───────┘
+                                │       │
+                  ┌─────────────┘       └─────────────┐
+                  ▼                                   ▼
+          ┌──────────────┐                    ┌──────────────┐
+          │ Better Auth  │                    │  Socket.IO   │
+          │              │                    │ Real-time    │
+          └──────┬───────┘                    └──────┬───────┘
+                 │                                   │
+                 ▼                                   │
+          ┌──────────────┐                           │
+          │ PostgreSQL   │◄──────────────────────────┘
+          │              │
+          │ Core data    │
+          └──────────────┘
 
-                    Server-side AI
-                         │
-                         ▼
-                    Gemini API
+                 Next.js Server
+                       │
+              ┌────────┴────────┐
+              ▼                 ▼
+       ┌──────────────┐  ┌──────────────┐
+       │   Gemini API │  │   MongoDB    │
+       │              │  │              │
+       │ Code review  │  │ AI review    │
+       │ generation   │  │ history      │
+       └──────────────┘  └──────────────┘
 ```
 
-------------------------------------------------------------------------
+## 3. Frontend Architecture
 
-## 3. Major Components
+The frontend uses:
 
-### Frontend
+- Next.js.
+- React.
+- TypeScript.
+- Tailwind CSS.
+- shadcn/ui.
+- Lucide React.
+- React Markdown.
+- React Syntax Highlighter.
 
-The frontend uses: - React. - Next.js App Router. - TypeScript. -
-Tailwind CSS. - shadcn/ui. - Lucide icons.
+The application uses server and client components according to their responsibilities.
 
-Client components manage interactive UI such as: - Sidebar. - Search. -
-Messaging. - Message editing/deletion. - Workspace dialogs. - CodeNest
-AI interface.
+Server components are used where server-side data access or rendering is appropriate.
 
-Server components are used where server-side data fetching is
-appropriate.
+Client components are used for interactive interfaces and real-time functionality.
 
-------------------------------------------------------------------------
+## 4. Application Structure
 
-## 4. Application Routing
+The application is organized around:
 
-The main application route structure is organized under the `(app)`
-route group.
-
-Conceptually:
-
-``` text
-/app
-  /(app)
-    /dashboard
-    /DM/[conversationId]
-    /workspace/[workspaceId]
-    /workspace/new
-    /ai
-    /layout.tsx
+```text
+src/
+├── actions/
+├── app/
+├── components/
+├── features/
+├── lib/
+├── models/
+└── types/
 ```
 
-Authentication routes are separated under `(auth)`.
+Important areas include:
 
-------------------------------------------------------------------------
-
-## 5. Backend Architecture
-
-CodeNest primarily uses Next.js server-side functionality rather than a
-separate Express backend.
-
-Server Actions are responsible for operations such as: - Creating
-workspaces. - Adding members. - Deleting workspaces. - Leaving
-workspaces. - Fetching workspace data. - Fetching conversations. -
-Sending messages. - Editing messages. - Deleting messages. - Searching
-application data. - Calling Gemini for CodeNest AI.
-
-------------------------------------------------------------------------
-
-## 6. Authentication Architecture
-
-Better Auth manages authentication and sessions.
-
-Simplified flow:
-
-``` text
-User
-  │
-  ▼
-Login / Signup
-  │
-  ▼
-Better Auth
-  │
-  ▼
-Session
-  │
-  ▼
-Authenticated request
-  │
-  ▼
-Server Action / Server Component
+```text
+src/actions/
 ```
 
-Protected operations retrieve the current session on the server.
+Server-side application operations.
 
-The browser is not treated as the security boundary.
+```text
+src/features/app/
+```
 
-------------------------------------------------------------------------
+Feature-specific client-side functionality.
 
-## 7. Authorization
+```text
+src/lib/
+```
+
+Infrastructure integrations including:
+
+- Authentication.
+- Prisma.
+- MongoDB.
+- Gemini.
+- Socket.IO.
+
+```text
+src/models/
+```
+
+MongoDB/Mongoose models.
+
+## 5. Authentication Architecture
+
+Better Auth manages authentication using PostgreSQL through its Prisma adapter.
+
+Protected server operations retrieve the authenticated session from the request headers.
 
 Authorization is performed server-side.
 
-Example workspace deletion flow:
+The system does not trust frontend UI restrictions as a security mechanism.
 
-``` text
-Request
-  │
-  ▼
-Get session
-  │
-  ├── No session → Unauthorized
-  │
-  ▼
-Find WorkspaceMember
-  │
-  ├── No membership → Unauthorized
-  │
-  ▼
-Check role
-  │
-  ├── Not OWNER → Forbidden
-  │
-  ▼
-Delete workspace
-```
+## 6. PostgreSQL Architecture
 
-Similar authorization checks are used for workspace membership and
-conversations.
+PostgreSQL stores the core relational application data.
 
-------------------------------------------------------------------------
+Major entities include:
 
-## 8. Database Architecture
-
-PostgreSQL is the primary relational database.
-
-Prisma is used as the ORM.
-
-The application contains authentication data plus application data
-for: - Users. - Workspaces. - Workspace members. - Conversations. -
-Conversation participants. - Messages.
-
-Conceptual relationship:
-
-``` text
+```text
 User
- │
- ├── Session
- ├── Account
- ├── WorkspaceMember
- ├── Message
- └── ConversationParticipant
-
 Workspace
- │
- ├── WorkspaceMember
- └── Conversation
-
+WorkspaceMember
 Conversation
- │
- ├── Message
- └── ConversationParticipant
+ConversationParticipant
+Message
+Authentication/session entities
 ```
 
-Workspace membership connects users and workspaces and contains a role.
+Relationships are represented using relational keys and foreign keys.
 
-------------------------------------------------------------------------
+Prisma provides the database access layer.
 
-## 9. Real-Time Architecture
+## 7. MongoDB Architecture
 
-Socket.IO provides bidirectional real-time communication.
+MongoDB is used specifically for AI review history.
 
-The application maintains a client Socket.IO connection.
+The MongoDB document model is:
 
-### Conversation Rooms
+```text
+CodeReview
+├── userId
+├── title
+├── code
+├── summary
+├── severity
+├── issues[]
+│   ├── title
+│   ├── explanation
+│   └── suggestion
+├── improvedCode
+├── createdAt
+└── updatedAt
+```
 
-When a user opens a conversation, the socket joins a
-conversation-specific room:
+The `issues` array is embedded inside the CodeReview document.
 
-``` text
+The `userId` field references the PostgreSQL user's identifier without duplicating the complete user record.
+
+An index is maintained on `userId` for review-history queries.
+
+## 8. MongoDB CRUD Architecture
+
+The AI review lifecycle is:
+
+```text
+Create
+User submits code
+      ↓
+Gemini produces review
+      ↓
+CodeReview.create()
+      ↓
+MongoDB
+
+Read
+      ↓
+CodeReview.find()
+      ↓
+Current user's review history
+
+Update
+      ↓
+CodeReview.findOneAndUpdate()
+      ↓
+Rename review
+
+Delete
+      ↓
+CodeReview.findOneAndDelete()
+      ↓
+Remove review
+```
+
+Update and delete operations include both the review identifier and authenticated user's ID.
+
+This provides ownership protection.
+
+## 9. AI Architecture
+
+CodeNest AI is a standalone feature available through `/ai`.
+
+The architecture is:
+
+```text
+User
+  │
+  ▼
+CodeNest AI UI
+  │
+  ▼
+Server-side AI operation
+  │
+  ▼
+Gemini API
+  │
+  ▼
+Structured review
+  │
+  ├── title
+  ├── summary
+  ├── severity
+  ├── issues[]
+  └── improvedCode
+  │
+  ▼
+MongoDB
+  │
+  ▼
+Review History
+```
+
+The Gemini API key is kept server-side.
+
+## 10. Real-Time Architecture
+
+Socket.IO provides real-time communication.
+
+Conversation rooms follow the pattern:
+
+```text
 conversation:<conversationId>
 ```
 
-Messages can then be broadcast to users in that room.
+User-specific rooms follow:
 
-### User Rooms
-
-Authenticated sockets can also use a user-specific room:
-
-``` text
+```text
 user:<userId>
 ```
 
-This is useful for events targeted at one user's sidebar or application
-state.
+Conversation rooms are used for real-time messaging.
 
-### Example: Workspace Added
+User rooms are used for user-level application events such as workspace changes.
 
-``` text
-User A adds User B
-       │
-       ▼
-WorkspaceMember created
-       │
-       ▼
-Socket.IO event
-       │
-       ▼
-user:<User B>
-       │
-       ▼
-workspace-added
-       │
-       ▼
-User B sidebar refreshes
+## 11. Messaging Architecture
+
+The shared chat architecture consists of:
+
+```text
+Chat
+├── ChatHeader
+├── MessageList
+│   └── MessageItem
+└── MessageInput
 ```
 
-------------------------------------------------------------------------
+Messages are persisted in PostgreSQL.
 
-## 10. Workspace Deletion
+Socket.IO provides real-time delivery.
 
-Workspace deletion follows:
+Server-side authorization controls editing and deletion.
 
-``` text
-Owner
-  │
-  ▼
-Delete Workspace
-  │
-  ├── Verify authentication
-  ├── Verify membership
-  ├── Verify OWNER role
-  ├── Delete workspace
-  └── Notify affected clients
-          │
-          ▼
-    workspace-deleted
-          │
-          ▼
-    Sidebar updates
-          │
-          ▼
-    Active workspace user redirects
+## 12. Security Architecture
+
+Security is enforced at the server.
+
+Protected operations verify:
+
+1. Authentication.
+2. Workspace membership.
+3. Role.
+4. Resource ownership.
+
+The exact checks depend on the operation.
+
+Secrets such as Gemini credentials are stored using environment variables.
+
+## 13. Data Flow: AI Review
+
+```text
+1. User submits source code.
+2. Client sends the request to the server.
+3. Server validates the authenticated session.
+4. Server validates the submitted input.
+5. Server sends the code to Gemini.
+6. Gemini returns structured review data.
+7. Server persists the review in MongoDB.
+8. UI displays the review.
+9. Review becomes available in review history.
 ```
 
-------------------------------------------------------------------------
+## 14. Data Flow: Review History
 
-## 11. Leave Workspace
-
-Workspace owners cannot leave their own workspace because the owner is
-responsible for workspace lifecycle.
-
-Members can leave.
-
-Conceptual flow:
-
-``` text
-Member
-  │
-  ▼
-Leave Workspace
-  │
-  ▼
-Verify authentication
-  │
-  ▼
-Find membership
-  │
-  ├── Not found → Error
-  │
-  ▼
-Check role
-  │
-  ├── OWNER → Reject
-  │
-  ▼
-Delete membership
-  │
-  ▼
-Emit workspace-left
-  │
-  ▼
-Member's sidebar removes workspace
+```text
+Authenticated User
+       ↓
+getReviewHistory
+       ↓
+Verify Session
+       ↓
+Query MongoDB using userId
+       ↓
+Sort by createdAt descending
+       ↓
+Return review summary information
+       ↓
+ReviewHistory UI
 ```
 
-------------------------------------------------------------------------
+The history list does not need the complete source code and complete review document for every list item.
 
-## 12. Messaging Architecture
+## 15. Scalability Considerations
 
-Message flow:
+The current architecture separates responsibilities between PostgreSQL and MongoDB.
 
-``` text
-MessageInput
-    │
-    ▼
-sendMessage()
-    │
-    ▼
-Authenticate user
-    │
-    ▼
-Authorize conversation access
-    │
-    ▼
-Prisma creates Message
-    │
-    ▼
-Socket.IO
-    │
-    ▼
-conversation:<id>
-    │
-    ▼
-MessageList
-    │
-    ▼
-MessageItem
-```
+PostgreSQL handles relational application data.
 
-Messages are persisted in PostgreSQL before being displayed through the
-real-time system.
+MongoDB handles document-oriented AI review data.
 
-------------------------------------------------------------------------
+Socket.IO handles real-time communication separately from persistent message storage.
 
-## 13. CodeNest AI Architecture
+Indexes are used where query patterns justify them.
 
-CodeNest AI is a separate application feature from Direct Messages.
+The architecture can later be extended with features such as caching, rate limiting, testing infrastructure, containerization, and AI evaluation systems.
 
-It should be treated as an AI assistant, not as another
-user/conversation.
-
-``` text
-Sidebar
-   │
-   ▼
-CodeNest AI
-   │
-   ▼
-AI UI
-   │
-   ▼
-reviewCode()
-   │
-   ├── Authenticate user
-   ├── Validate input
-   ├── Build prompt
-   │
-   ▼
-Gemini API
-   │
-   ▼
-Structured JSON
-   │
-   ▼
-Server Action
-   │
-   ▼
-React UI
-```
-
-The Gemini API key remains server-side.
-
-------------------------------------------------------------------------
-
-## 14. AI Structured Output
-
-The AI response is represented using a predictable structure:
-
-``` text
-{
-  summary,
-  severity,
-  issues[],
-  improvedCode
-}
-```
-
-This allows the frontend to render the AI result consistently instead of
-parsing arbitrary natural-language text.
-
-------------------------------------------------------------------------
-
-## 15. Security Boundaries
-
-The browser is treated as an untrusted client.
-
-Sensitive operations occur on the server: - Authentication checks. -
-Authorization checks. - Database operations. - Gemini API calls. -
-Secret access.
-
-Environment variables are used for sensitive configuration.
-
-------------------------------------------------------------------------
-
-## 16. Error Handling
-
-Application operations use server-side error handling and client-side
-loading/error states.
-
-Examples: - Unauthorized user. - Missing workspace membership. - Invalid
-workspace role. - Empty message/code input. - Invalid AI request. -
-Failed AI response. - Database failures.
-
-------------------------------------------------------------------------
-
-## 17. Deployment Architecture
-
-The production deployment will contain: - Next.js application/server. -
-PostgreSQL database. - Required environment variables. - Socket.IO
-server functionality. - Gemini API access.
-
-The exact hosting provider and final deployment configuration are part
-of the deployment phase.
-
-------------------------------------------------------------------------
-
-## 18. Design Principles
-
-CodeNest follows these high-level principles: - Server-side
-authorization. - Separation of UI and server logic. - Feature-oriented
-organization. - Persistent relational data. - Real-time synchronization
-through Socket.IO. - Type-safe development with TypeScript. - Secrets
-kept on the server. - AI responses constrained through structured
-output.
+These are not part of the current implemented system.

@@ -3,19 +3,29 @@
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { gemini } from "@/lib/gemini";
+import { connectMongoDB } from "@/lib/mongodb";
+import { CodeReview } from "@/models/CodeReview";
 
 const responseSchema = {
   type: "object",
   properties: {
+    title: {
+      type: "string",
+      description:
+        "A short descriptive title for this code review, preferably identifying the code or problem being reviewed.",
+    },
+
     summary: {
       type: "string",
       description: "A short summary of the code review.",
     },
+
     severity: {
       type: "string",
       enum: ["low", "medium", "high"],
       description: "Overall severity of the issues found.",
     },
+
     issues: {
       type: "array",
       items: {
@@ -24,9 +34,11 @@ const responseSchema = {
           title: {
             type: "string",
           },
+
           explanation: {
             type: "string",
           },
+
           suggestion: {
             type: "string",
           },
@@ -34,12 +46,14 @@ const responseSchema = {
         required: ["title", "explanation", "suggestion"],
       },
     },
+
     improvedCode: {
       type: "string",
       description:
         "An improved version of the code. Return the original code if no changes are necessary.",
     },
   },
+
   required: ["summary", "severity", "issues", "improvedCode"],
 };
 
@@ -66,6 +80,7 @@ You are CodeNest AI, a programming code-review assistant.
 Your job is to review code and provide useful, accurate feedback.
 
 Rules:
+- Give the review a short, descriptive title.
 - Explain what the code is doing.
 - Identify bugs and potential problems.
 - Explain why each problem occurs.
@@ -85,6 +100,7 @@ ${code}
   const response = await gemini.models.generateContent({
     model: "gemini-2.5-flash",
     contents: prompt,
+
     config: {
       responseMimeType: "application/json",
       responseSchema,
@@ -95,5 +111,19 @@ ${code}
     throw new Error("Gemini returned an empty response");
   }
 
-  return JSON.parse(response.text);
+  const result = JSON.parse(response.text);
+
+  await connectMongoDB();
+
+  await CodeReview.create({
+    userId: session.user.id,
+    title: result.title,
+    code,
+    summary: result.summary,
+    severity: result.severity,
+    issues: result.issues,
+    improvedCode: result.improvedCode,
+  });
+
+  return result;
 }
