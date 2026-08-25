@@ -2,7 +2,7 @@
 
 import { WorkspaceMessage } from "@/types/chat";
 import MessageItem from "./MessageItem";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { socket } from "@/lib/socket";
 
 type MessageListProps = {
@@ -18,6 +18,12 @@ export default function MessageList({
 }: MessageListProps) {
   const [liveMessages, setLiveMessages] = useState(messages);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const shouldAutoScroll = useRef(true);
+
+  const initialScroll = useRef(true);
+
   useEffect(() => {
     const handleConnect = () => {
       console.log("Connected", socket.id);
@@ -27,6 +33,15 @@ export default function MessageList({
 
     const handleNewMessage = (message: WorkspaceMessage) => {
       console.log("Received new-message:", message);
+
+      const container = containerRef.current;
+
+      if (container) {
+        const distanceFromBottom =
+          container.scrollHeight - container.scrollTop - container.clientHeight;
+
+        shouldAutoScroll.current = distanceFromBottom < 150;
+      }
 
       setLiveMessages((currentMessages) => [...currentMessages, message]);
     };
@@ -68,8 +83,32 @@ export default function MessageList({
     };
   }, [conversationId]);
 
+  useEffect(() => {
+    const container = containerRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    if (initialScroll.current) {
+      container.scrollTop = container.scrollHeight;
+      initialScroll.current = false;
+      return;
+    }
+
+    if (shouldAutoScroll.current) {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+  }, [liveMessages.length]);
+
   return (
-    <div className="flex-1 overflow-y-auto">
+    <div
+      ref={containerRef}
+      className="min-h-0 flex-1 overflow-y-auto bg-background pb-4"
+    >
       {liveMessages.map((message) => (
         <MessageItem
           key={message.id}

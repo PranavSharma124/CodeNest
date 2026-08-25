@@ -13,6 +13,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Plus } from "lucide-react";
 
 type NewMessageButtonProps = {
   users: Users;
@@ -25,7 +26,15 @@ export default function NewMessageButton({ users }: NewMessageButtonProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="default" />}>
+      <DialogTrigger
+        render={
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-2 border border-sidebar-border text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          />
+        }
+      >
+        <Plus className="h-4 w-4" />
         New Message
       </DialogTrigger>
 

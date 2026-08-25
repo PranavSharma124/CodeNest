@@ -29,12 +29,10 @@ export default async function WorkspacePage({ params }: Props) {
   }
 
   return (
-    <div>
-      <Chat
-        conversation={conversation}
-        workspace={workspace}
-        currentUserId={session.user.id}
-      />
-    </div>
+    <Chat
+      conversation={conversation}
+      workspace={workspace}
+      currentUserId={session.user.id}
+    />
   );
 }
