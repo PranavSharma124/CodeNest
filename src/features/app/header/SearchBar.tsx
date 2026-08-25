@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { searchApp } from "@/actions/search";
 import { getOrCreateDirectConversation } from "@/actions/getOrCreateDirectConversation";
+import { debounce } from "@/lib/utils";
 
 type SearchResults = Awaited<ReturnType<typeof searchApp>>;
 
@@ -26,11 +27,11 @@ export default function SearchBar() {
       return;
     }
 
-    const timeout = setTimeout(async () => {
+    const runSearch = debounce(async (searchQuery: string) => {
       try {
         setLoading(true);
 
-        const data = await searchApp(trimmedQuery);
+        const data = await searchApp(searchQuery);
 
         setResults(data);
       } catch (error) {
@@ -40,8 +41,10 @@ export default function SearchBar() {
       }
     }, 300);
 
+    runSearch(trimmedQuery);
+
     return () => {
-      clearTimeout(timeout);
+      runSearch.cancel();
     };
   }, [query]);
 

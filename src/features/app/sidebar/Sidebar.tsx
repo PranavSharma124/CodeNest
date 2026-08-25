@@ -21,15 +21,15 @@ type SidebarProps = {
   workspaces: WorkspaceItem[];
   users: Users;
   directConversations: DirectConversations;
-  mobileOpen: boolean;
-  onMobileClose: () => void;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 };
 
 export default function Sidebar({
   workspaces,
   users,
   directConversations,
-  mobileOpen,
+  mobileOpen = false,
   onMobileClose,
 }: SidebarProps) {
   const router = useRouter();
