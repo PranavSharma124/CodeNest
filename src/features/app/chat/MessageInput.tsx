@@ -36,8 +36,8 @@ export default function MessageInput({ conversationId }: MessageInputProps) {
   };
 
   return (
-    <div className="border-t p-4">
-      <div className="flex items-end gap-2 rounded-lg border bg-background p-2">
+    <div className="shrink-0 border-t border-border bg-card p-4">
+      <div className="flex items-end gap-2 rounded-lg border border-border bg-background p-2">
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
