@@ -52,13 +52,25 @@ export default function ChatHeader({ workspace }: ChatHeaderProps) {
     }
   };
 
+  const isWorkspace = Boolean(workspace);
+
   return (
     <>
-      <header className="flex items-center border-b px-6 py-4">
-        <div className="flex flex-1 items-center gap-2">
-          <MessageCircle className="h-5 w-5" />
+      <header className="flex h-16 shrink-0 items-center border-b border-border bg-card px-5">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10">
+            <MessageCircle className="h-5 w-5 text-primary" />
+          </div>
 
-          <h3>{workspace?.name ?? "Direct Message"}</h3>
+          <div className="min-w-0">
+            <h3 className="truncate text-sm font-semibold text-foreground">
+              {workspace?.name ?? "Direct Message"}
+            </h3>
+
+            <p className="text-xs text-muted-foreground">
+              {isWorkspace ? "Workspace" : "Direct Message"}
+            </p>
+          </div>
         </div>
 
         {workspace && (
@@ -69,6 +81,7 @@ export default function ChatHeader({ workspace }: ChatHeaderProps) {
                   variant="ghost"
                   size="icon"
                   aria-label="Workspace options"
+                  className="text-muted-foreground hover:bg-accent hover:text-foreground"
                 />
               }
             >

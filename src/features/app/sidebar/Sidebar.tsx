@@ -9,7 +9,7 @@ import DirectMessagesSection from "./DirectMessagesSection";
 import NewWorkspaceButton from "./NewWorkspaceButton";
 import { socket } from "@/lib/socket";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import SidebarNavItem from "./SidebarNavItem";
 import { Bot } from "lucide-react";
 
 type WorkspaceItem = {
@@ -21,12 +21,16 @@ type SidebarProps = {
   workspaces: WorkspaceItem[];
   users: Users;
   directConversations: DirectConversations;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 };
 
 export default function Sidebar({
   workspaces,
   users,
   directConversations,
+  mobileOpen = false,
+  onMobileClose,
 }: SidebarProps) {
   const router = useRouter();
   const [hiddenWorkspaceIds, setHiddenWorkspaceIds] = useState<Set<string>>(
@@ -80,22 +84,49 @@ export default function Sidebar({
   }, [router]);
 
   return (
-    <aside className="w-64 border p-4 space-y-6">
-      <SidebarSection title="Workspaces" workspaces={visibleWorkspaces} />
-
-      <NewWorkspaceButton />
-
-      <DirectMessagesSection directConversations={directConversations} />
-
-      <NewMessageButton users={users} />
-
-      <Link
-        href="/ai"
-        className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted"
+    <>
+      {mobileOpen && (
+        <button
+          type="button"
+          aria-label="Close sidebar"
+          className="fixed inset-0 z-40 bg-black/60 md:hidden"
+          onClick={onMobileClose}
+        />
+      )}
+      <aside
+        className={`
+    fixed inset-y-0 left-0 z-50
+    flex w-72 shrink-0 flex-col gap-3
+    border-r border-sidebar-border
+    bg-sidebar p-3 text-sidebar-foreground
+    transition-transform duration-200
+    md:static md:z-auto md:w-64 md:translate-x-0
+    ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
+  `}
       >
-        <Bot className="h-4 w-4" />
-        CodeNest AI
-      </Link>
-    </aside>
+        <SidebarSection
+          title="Workspaces"
+          workspaces={visibleWorkspaces}
+          onNavigate={onMobileClose}
+        />
+
+        <NewWorkspaceButton />
+
+        <DirectMessagesSection
+          directConversations={directConversations}
+          onNavigate={onMobileClose}
+        />
+
+        <NewMessageButton users={users} />
+
+        <SidebarNavItem
+          href="/ai"
+          icon={<Bot className="h-4 w-4" />}
+          onNavigate={onMobileClose}
+        >
+          CodeNest AI
+        </SidebarNavItem>
+      </aside>
+    </>
   );
 }

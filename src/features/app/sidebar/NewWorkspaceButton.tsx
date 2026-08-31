@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Plus } from "lucide-react";
 
 export default function NewWorkspaceButton() {
   const router = useRouter();
@@ -44,7 +45,15 @@ export default function NewWorkspaceButton() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="default" />}>
+      <DialogTrigger
+        render={
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-2 border border-sidebar-border text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          />
+        }
+      >
+        <Plus className="h-4 w-4" />
         New Workspace
       </DialogTrigger>
 
