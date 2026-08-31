@@ -1,73 +1,118 @@
--- CodeNest SQL JOIN Demonstrations
--- Educational examples for the SQL JOIN rubric.
--- These examples do NOT modify CodeNest's production database.
+-- SQL JOIN Demonstration
+-- Required for SQL JOIN evaluation criteria
 
-CREATE TABLE IF NOT EXISTS rubric_users (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL
+
+-- ============================================================
+-- 1. Create Sample Tables
+-- ============================================================
+
+CREATE TABLE users (
+    id INT PRIMARY KEY,
+    name VARCHAR(100)
 );
 
-CREATE TABLE IF NOT EXISTS rubric_workspaces (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL
+CREATE TABLE reviews (
+    id INT PRIMARY KEY,
+    user_id INT,
+    review_text VARCHAR(255),
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
-CREATE TABLE IF NOT EXISTS rubric_workspace_members (
-    id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL REFERENCES rubric_users(id) ON DELETE CASCADE,
-    workspace_id INT NOT NULL REFERENCES rubric_workspaces(id) ON DELETE CASCADE,
-    role VARCHAR(50) NOT NULL
-);
 
--- 1. INNER JOIN: members with their user details
-SELECT
-    wm.id AS membership_id,
-    wm.role,
-    u.id AS user_id,
-    u.name AS user_name,
-    u.email AS user_email
-FROM rubric_workspace_members AS wm
-INNER JOIN rubric_users AS u
-    ON wm.user_id = u.id
-WHERE wm.workspace_id = 1
-ORDER BY wm.id;
+-- ============================================================
+-- 2. Insert Sample Data
+-- ============================================================
 
--- 2. LEFT JOIN: every user, including users with no workspace membership
-SELECT
-    u.id AS user_id,
-    u.name AS user_name,
-    wm.workspace_id,
-    wm.role
-FROM rubric_users AS u
-LEFT JOIN rubric_workspace_members AS wm
-    ON u.id = wm.user_id
-ORDER BY u.id;
+INSERT INTO users (id, name)
+VALUES
+    (1, 'Pranav'),
+    (2, 'Rahul'),
+    (3, 'Aman');
 
--- 3. RIGHT JOIN: every user from the right-hand table
-SELECT
-    wm.id AS membership_id,
-    wm.workspace_id,
-    wm.role,
-    u.id AS user_id,
-    u.name AS user_name,
-    u.email AS user_email
-FROM rubric_workspace_members AS wm
-RIGHT JOIN rubric_users AS u
-    ON wm.user_id = u.id
-ORDER BY u.id;
+INSERT INTO reviews (id, user_id, review_text)
+VALUES
+    (101, 1, 'Good code'),
+    (102, 1, 'Needs optimization'),
+    (103, 2, 'Looks clean');
 
--- 4. CodeNest production JOIN used by:
---    src/actions/getWorkspaceMembers.ts
+
+-- ============================================================
+-- 3. INNER JOIN
+-- ============================================================
+
+-- INNER JOIN returns only users who have reviews.
+
 SELECT
-    wm.id,
-    wm.role,
-    u.id AS "userId",
-    u.name AS "userName",
-    u.email AS "userEmail",
-    u.image AS "userImage"
-FROM "workspace_member" AS wm
-INNER JOIN "user" AS u
-    ON wm."userId" = u.id
-WHERE wm."workspaceId" = 1
-ORDER BY wm."createdAt" ASC;
+    users.id,
+    users.name,
+    reviews.review_text
+FROM users
+INNER JOIN reviews
+    ON users.id = reviews.user_id;
+
+
+-- ============================================================
+-- 4. LEFT JOIN
+-- ============================================================
+
+-- LEFT JOIN returns ALL users,
+-- even if they do not have a review.
+
+SELECT
+    users.id,
+    users.name,
+    reviews.review_text
+FROM users
+LEFT JOIN reviews
+    ON users.id = reviews.user_id;
+
+
+-- ============================================================
+-- 5. LEFT JOIN to Find Users Without Reviews
+-- ============================================================
+
+-- This shows users who have no associated review.
+
+SELECT
+    users.id,
+    users.name
+FROM users
+LEFT JOIN reviews
+    ON users.id = reviews.user_id
+WHERE reviews.id IS NULL;
+
+
+-- ============================================================
+-- 6. JOIN with Filtering
+-- ============================================================
+
+-- Retrieve reviews belonging to a specific user.
+
+SELECT
+    users.name,
+    reviews.review_text
+FROM users
+INNER JOIN reviews
+    ON users.id = reviews.user_id
+WHERE users.id = 1;
+
+
+-- ============================================================
+-- 7. JOIN Summary
+-- ============================================================
+
+/*
+INNER JOIN:
+    Returns only matching records from both tables.
+
+LEFT JOIN:
+    Returns every record from the left table
+    and matching records from the right table.
+
+In CodeNest:
+    INNER JOIN is useful when we only need users
+    that have associated review data.
+
+    LEFT JOIN is useful when we want all users,
+    including users who may not have review data.
+*/
