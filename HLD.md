@@ -1,350 +1,247 @@
-# CodeNest — High-Level Design
+# CodeNest --- High-Level Design (HLD)
 
-## 1. Introduction
+**Version:** 1.0\
+**Status:** Current implementation / deployment preparation
 
-CodeNest is a full-stack developer collaboration platform built with Next.js, React, TypeScript, PostgreSQL, MongoDB, Better Auth, Prisma, Socket.IO, and the Gemini API.
+## 1. System Overview
 
-The system combines relational application data with document-oriented AI review history.
+CodeNest is a full-stack web application built with Next.js, React, and
+TypeScript. It combines Next.js Server Actions, a custom Node.js server,
+Socket.IO, Better Auth, PostgreSQL/Prisma, MongoDB/Mongoose, and Google
+Gemini.
 
 ## 2. High-Level Architecture
 
-```text
+``` text
                          ┌──────────────────────┐
                          │       Browser        │
-                         │ React / Next.js UI   │
+                         │   React / Next.js    │
                          └──────────┬───────────┘
                                     │
-                                    ▼
-                         ┌──────────────────────┐
-                         │   Next.js Application│
-                         │                      │
-                         │ Server Components   │
-                         │ Client Components   │
-                         │ Server Actions      │
-                         └──────┬───────┬───────┘
-                                │       │
-                  ┌─────────────┘       └─────────────┐
-                  ▼                                   ▼
-          ┌──────────────┐                    ┌──────────────┐
-          │ Better Auth  │                    │  Socket.IO   │
-          │              │                    │ Real-time    │
-          └──────┬───────┘                    └──────┬───────┘
-                 │                                   │
-                 ▼                                   │
-          ┌──────────────┐                           │
-          │ PostgreSQL   │◄──────────────────────────┘
-          │              │
-          │ Core data    │
-          └──────────────┘
-
-                 Next.js Server
-                       │
-              ┌────────┴────────┐
-              ▼                 ▼
-       ┌──────────────┐  ┌──────────────┐
-       │   Gemini API │  │   MongoDB    │
-       │              │  │              │
-       │ Code review  │  │ AI review    │
-       │ generation   │  │ history      │
-       └──────────────┘  └──────────────┘
+                    ┌───────────────┴───────────────┐
+                    │                               │
+                    ▼                               ▼
+             Next.js application              Socket.IO Client
+                    │                               │
+          ┌─────────┴─────────┐                     │
+          │                   │                     ▼
+          ▼                   ▼              Socket.IO Server
+   Server Components    Server Actions             │
+          │                   │                     │
+          │          ┌────────┴────────┐            │
+          │          │                 │            │
+          ▼          ▼                 ▼            ▼
+       Prisma   Better Auth        Gemini API   Real-time rooms
+          │          │                 │
+          ▼          ▼                 ▼
+     PostgreSQL   Sessions        Structured AI
+                                      │
+                                      ▼
+                                  MongoDB
+                              Review history
 ```
 
-## 3. Frontend Architecture
+## 3. Major Components
 
-The frontend uses:
+### Frontend
 
-- Next.js.
-- React.
-- TypeScript.
-- Tailwind CSS.
-- shadcn/ui.
-- Lucide React.
-- React Markdown.
-- React Syntax Highlighter.
+React/Next.js components provide the UI. Client components manage
+interactive state, search, messaging, workspace dialogs, AI
+interactions, and Socket.IO lifecycle. Tailwind CSS and shadcn/ui
+provide the UI system.
 
-The application uses server and client components according to their responsibilities.
+### Backend
 
-Server components are used where server-side data access or rendering is appropriate.
+CodeNest uses Next.js Server Actions rather than a separate Express
+backend. A custom Node.js server starts Next.js and attaches Socket.IO
+to the same HTTP server.
 
-Client components are used for interactive interfaces and real-time functionality.
+### Authentication
 
-## 4. Application Structure
+Better Auth manages email/password authentication and sessions. The
+Prisma adapter stores authentication-related data in PostgreSQL.
 
-The application is organized around:
+### Databases
 
-```text
-src/
-├── actions/
-├── app/
-├── components/
-├── features/
-├── lib/
-├── models/
-└── types/
+PostgreSQL stores relational application data. MongoDB stores AI review
+history.
+
+### AI
+
+Gemini is called only from the server-side AI flow. Structured output
+provides a predictable response contract.
+
+## 4. Application Routing
+
+Conceptually:
+
+``` text
+src/app/
+├── (auth)/
+│   ├── login/
+│   └── signup/
+├── (app)/
+│   ├── dashboard/
+│   ├── DM/[conversationId]/
+│   ├── workspace/[workspaceId]/
+│   ├── workspace/new/
+│   └── ai/
+├── api/
+│   ├── auth/[...all]/
+│   └── user/
+└── page.tsx
 ```
 
-Important areas include:
+## 5. Authorization
 
-```text
-src/actions/
+Authorization occurs on the server.
+
+``` text
+Request
+  ↓
+Get session
+  ↓
+Check membership/ownership
+  ↓
+Check role when required
+  ↓
+Perform operation
 ```
 
-Server-side application operations.
+The browser is not treated as the security boundary.
 
-```text
-src/features/app/
-```
+## 6. Database Architecture
 
-Feature-specific client-side functionality.
+PostgreSQL entities include:
 
-```text
-src/lib/
-```
+-   User
+-   Session
+-   Account
+-   Verification
+-   Workspace
+-   WorkspaceMember
+-   Conversation
+-   ConversationParticipant
+-   Message
 
-Infrastructure integrations including:
+Conceptual relationships:
 
-- Authentication.
-- Prisma.
-- MongoDB.
-- Gemini.
-- Socket.IO.
-
-```text
-src/models/
-```
-
-MongoDB/Mongoose models.
-
-## 5. Authentication Architecture
-
-Better Auth manages authentication using PostgreSQL through its Prisma adapter.
-
-Protected server operations retrieve the authenticated session from the request headers.
-
-Authorization is performed server-side.
-
-The system does not trust frontend UI restrictions as a security mechanism.
-
-## 6. PostgreSQL Architecture
-
-PostgreSQL stores the core relational application data.
-
-Major entities include:
-
-```text
+``` text
 User
+ ├── Session
+ ├── Account
+ ├── WorkspaceMember
+ ├── Message
+ └── ConversationParticipant
+
 Workspace
-WorkspaceMember
+ ├── WorkspaceMember
+ └── Conversation
+
 Conversation
-ConversationParticipant
-Message
-Authentication/session entities
+ ├── Message
+ └── ConversationParticipant
 ```
 
-Relationships are represented using relational keys and foreign keys.
+MongoDB contains `CodeReview` documents with embedded issues.
 
-Prisma provides the database access layer.
+## 7. Real-Time Architecture
 
-## 7. MongoDB Architecture
+Authenticated sockets join:
 
-MongoDB is used specifically for AI review history.
-
-The MongoDB document model is:
-
-```text
-CodeReview
-├── userId
-├── title
-├── code
-├── summary
-├── severity
-├── issues[]
-│   ├── title
-│   ├── explanation
-│   └── suggestion
-├── improvedCode
-├── createdAt
-└── updatedAt
-```
-
-The `issues` array is embedded inside the CodeReview document.
-
-The `userId` field references the PostgreSQL user's identifier without duplicating the complete user record.
-
-An index is maintained on `userId` for review-history queries.
-
-## 8. MongoDB CRUD Architecture
-
-The AI review lifecycle is:
-
-```text
-Create
-User submits code
-      ↓
-Gemini produces review
-      ↓
-CodeReview.create()
-      ↓
-MongoDB
-
-Read
-      ↓
-CodeReview.find()
-      ↓
-Current user's review history
-
-Update
-      ↓
-CodeReview.findOneAndUpdate()
-      ↓
-Rename review
-
-Delete
-      ↓
-CodeReview.findOneAndDelete()
-      ↓
-Remove review
-```
-
-Update and delete operations include both the review identifier and authenticated user's ID.
-
-This provides ownership protection.
-
-## 9. AI Architecture
-
-CodeNest AI is a standalone feature available through `/ai`.
-
-The architecture is:
-
-```text
-User
-  │
-  ▼
-CodeNest AI UI
-  │
-  ▼
-Server-side AI operation
-  │
-  ▼
-Gemini API
-  │
-  ▼
-Structured review
-  │
-  ├── title
-  ├── summary
-  ├── severity
-  ├── issues[]
-  └── improvedCode
-  │
-  ▼
-MongoDB
-  │
-  ▼
-Review History
-```
-
-The Gemini API key is kept server-side.
-
-## 10. Real-Time Architecture
-
-Socket.IO provides real-time communication.
-
-Conversation rooms follow the pattern:
-
-```text
-conversation:<conversationId>
-```
-
-User-specific rooms follow:
-
-```text
+``` text
 user:<userId>
 ```
 
-Conversation rooms are used for real-time messaging.
+Conversation access is checked before joining:
 
-User rooms are used for user-level application events such as workspace changes.
-
-## 11. Messaging Architecture
-
-The shared chat architecture consists of:
-
-```text
-Chat
-├── ChatHeader
-├── MessageList
-│   └── MessageItem
-└── MessageInput
+``` text
+conversation:<conversationId>
 ```
 
-Messages are persisted in PostgreSQL.
+Current event patterns include new messages and workspace lifecycle
+events such as workspace-added, workspace-left, and workspace-deleted.
 
-Socket.IO provides real-time delivery.
+## 8. Messaging Flow
 
-Server-side authorization controls editing and deletion.
-
-## 12. Security Architecture
-
-Security is enforced at the server.
-
-Protected operations verify:
-
-1. Authentication.
-2. Workspace membership.
-3. Role.
-4. Resource ownership.
-
-The exact checks depend on the operation.
-
-Secrets such as Gemini credentials are stored using environment variables.
-
-## 13. Data Flow: AI Review
-
-```text
-1. User submits source code.
-2. Client sends the request to the server.
-3. Server validates the authenticated session.
-4. Server validates the submitted input.
-5. Server sends the code to Gemini.
-6. Gemini returns structured review data.
-7. Server persists the review in MongoDB.
-8. UI displays the review.
-9. Review becomes available in review history.
+``` text
+Message UI
+   ↓
+sendMessage()
+   ↓
+Authenticate
+   ↓
+Authorize conversation
+   ↓
+Persist Message in PostgreSQL
+   ↓
+Socket.IO event
+   ↓
+conversation:<id>
+   ↓
+Connected clients update
 ```
 
-## 14. Data Flow: Review History
+## 9. CodeNest AI Architecture
 
-```text
-Authenticated User
-       ↓
-getReviewHistory
-       ↓
-Verify Session
-       ↓
-Query MongoDB using userId
-       ↓
-Sort by createdAt descending
-       ↓
-Return review summary information
-       ↓
-ReviewHistory UI
+CodeNest AI is a standalone `/ai` feature.
+
+``` text
+User
+  ↓
+CodeNest AI UI
+  ↓
+reviewCode()
+  ├── Authenticate
+  ├── Validate input
+  └── Build prompt
+          ↓
+       Gemini API
+          ↓
+    Structured JSON
+          ↓
+     Parse result
+          ↓
+  Persist CodeReview
+      in MongoDB
+          ↓
+      React UI
 ```
 
-The history list does not need the complete source code and complete review document for every list item.
+## 10. Security Boundaries
 
-## 15. Scalability Considerations
+Server-side responsibilities include authentication, authorization,
+database access, Gemini calls, secret access, and Socket.IO room
+authorization.
 
-The current architecture separates responsibilities between PostgreSQL and MongoDB.
+Required sensitive configuration is supplied through environment
+variables.
 
-PostgreSQL handles relational application data.
+## 11. Error Handling
 
-MongoDB handles document-oriented AI review data.
+The system handles unauthenticated requests, unauthorized operations,
+invalid roles, invalid input, missing records, database failures, and
+external AI failures. Client components use loading/error states where
+appropriate.
 
-Socket.IO handles real-time communication separately from persistent message storage.
+## 12. Deployment Architecture
 
-Indexes are used where query patterns justify them.
+The current production design uses one custom Node.js service capable of
+serving both Next.js and Socket.IO.
 
-The architecture can later be extended with features such as caching, rate limiting, testing infrastructure, containerization, and AI evaluation systems.
+The server uses `localhost` in development and `0.0.0.0` in production,
+with `PORT` read from the environment.
 
-These are not part of the current implemented system.
+Required environment variables:
+
+``` text
+DATABASE_URL
+MONGODB_URI
+GEMINI_API_KEY
+BETTER_AUTH_URL
+BETTER_AUTH_SECRET
+```
+
+The codebase is prepared for deployment. Deployment should only be
+described as completed after the production service and end-to-end
+functionality have actually been verified.

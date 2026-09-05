@@ -19,7 +19,12 @@ app.prepare().then(() => {
     handle(req, res);
   });
 
-  const io = new Server(httpServer);
+  const io = new Server(httpServer, {
+    cors: {
+      origin: process.env.BETTER_AUTH_URL,
+      credentials: true,
+    },
+  });
 
   setSocketIO(io);
 

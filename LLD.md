@@ -1,481 +1,444 @@
-# CodeNest — Low-Level Design
+# CodeNest --- Low-Level Design (LLD)
 
-## 1. Overview
+**Version:** 1.0\
+**Status:** Current implementation / deployment preparation
 
-This document describes the implementation-level design of CodeNest, including the major modules, data models, server actions, authentication checks, AI integration, MongoDB implementation, and real-time communication.
+## 1. Project Structure
 
-## 2. Technology Stack
-
-### Frontend
-
-- Next.js
-- React
-- TypeScript
-- Tailwind CSS
-- shadcn/ui
-- Lucide React
-- React Markdown
-- React Syntax Highlighter
-
-### Backend
-
-- Next.js Server Actions
-- Node.js
-- Socket.IO
-
-### Databases
-
-- PostgreSQL
-- Prisma
-- MongoDB
-- Mongoose
-
-### Authentication
-
-- Better Auth
-- Prisma adapter
-- Email/password authentication
-
-### AI
-
-- Google Gemini API
-- `@google/genai`
-
-## 3. Module Structure
-
-```text
+``` text
 src/
-├── actions/
-├── app/
-│   ├── (app)/
-│   │   ├── dashboard/
-│   │   ├── DM/
-│   │   ├── workspace/
-│   │   └── ai/
-│   ├── (auth)/
-│   └── globals.css
-│
-├── components/
-│   ├── auth/
-│   └── ui/
-│
-├── features/
-│   ├── app/
-│   │   ├── ai/
-│   │   ├── chat/
-│   │   ├── header/
-│   │   ├── sidebar/
-│   │   └── socket/
-│   └── workspace/
-│
-├── lib/
-│   ├── auth.ts
-│   ├── auth-client.ts
-│   ├── gemini.ts
-│   ├── mongodb.ts
-│   ├── prisma.ts
-│   ├── socket.ts
-│   └── socket-server.ts
-│
-├── models/
-│   └── CodeReview.ts
-│
-└── types/
+├── actions/          # Server Actions
+├── app/              # Next.js routes/pages
+├── features/         # Feature-specific React components
+├── lib/              # Shared clients/utilities
+└── models/           # Mongoose models
+
+prisma/
+└── schema.prisma
+
+server.ts             # Node + Next.js + Socket.IO server
 ```
 
-## 4. Authentication
+## 2. Authentication
 
-Better Auth manages authentication.
+### `src/lib/auth.ts`
 
-The server retrieves the current authenticated session using request headers.
+Configures Better Auth and the Prisma adapter. The production base URL
+is supplied through `BETTER_AUTH_URL`.
 
-Protected operations must verify the session before accessing or modifying protected resources.
+### `src/app/api/auth/[...all]/route.ts`
 
-Conceptually:
+Provides the Next.js route-handler entry point for Better Auth.
 
-```text
-Request
+### `src/lib/auth-client.ts`
+
+Creates the client auth instance without a hardcoded localhost URL.
+
+### Login flow
+
+``` text
+Login Page
   ↓
-Get Session
+authClient.signIn.email()
   ↓
-Session exists?
-  ├── No → Unauthorized
-  └── Yes
-       ↓
-Continue operation
+Better Auth
+  ↓
+Session
+  ↓
+/dashboard
 ```
 
-## 5. Workspace Authorization
+## 3. PostgreSQL Data Model
 
-Workspace operations use membership and role information.
+The Prisma schema contains:
 
-Roles:
-
-```text
-OWNER
-ADMIN
-MEMBER
+``` text
+User
+Session
+Account
+Verification
+Workspace
+WorkspaceMember
+Conversation
+ConversationParticipant
+Message
 ```
 
-Authorization checks are performed on the server.
+Workspace membership is a relationship between users and workspaces and
+contains the user's role.
 
-Examples:
+Conversations support:
 
-- Workspace deletion requires owner authorization.
-- Workspace membership is checked before protected workspace operations.
-- The owner cannot leave their own workspace.
-- Members can leave a workspace.
-
-## 6. MongoDB Connection
-
-MongoDB is accessed through a dedicated database connection module:
-
-```text
-src/lib/mongodb.ts
+``` text
+DIRECT
+WORKSPACE
 ```
 
-Mongoose is used for schema definition and database operations.
+Messages belong to conversations and users.
 
-## 7. CodeReview Model
+## 4. Server Action Pattern
 
-The MongoDB model is located at:
+Protected Server Actions generally follow:
 
-```text
-src/models/CodeReview.ts
+``` text
+Input
+ ↓
+Get session
+ ↓
+Validate input
+ ↓
+Check authorization
+ ↓
+Database/external operation
+ ↓
+Return result
 ```
 
-Conceptual schema:
+This prevents the client from being the source of authorization
+decisions.
 
-```ts
-CodeReview {
-  userId: String
-  title: String
-  code: String
-  summary: String
-  severity: String
-  issues: Issue[]
-  improvedCode: String
-  createdAt: Date
-  updatedAt: Date
-}
+## 5. SQL JOIN
+
+Workspace member retrieval uses an explicit parameterized PostgreSQL
+`INNER JOIN` conceptually equivalent to:
+
+``` sql
+SELECT ...
+FROM workspace_member wm
+INNER JOIN "user" u
+  ON wm."userId" = u.id
+WHERE wm."workspaceId" = $1;
 ```
 
-## 8. Embedded Issue Model
+This combines membership information with user information in one
+relational query.
 
-Issues are embedded inside the CodeReview document.
+## 6. Workspace Authorization
 
-```ts
-interface Issue {
-  title: string;
-  explanation: string;
-  suggestion: string;
-}
+Protected workspace operations verify the authenticated user's
+membership.
+
+Owner-only actions additionally verify:
+
+``` text
+role === OWNER
 ```
 
-### Reason for embedding
+## 7. Messaging
 
-Issues are embedded because:
+Server actions support message retrieval, sending, editing, and
+deletion.
 
-- An issue belongs to a single review.
-- Issues do not currently have an independent lifecycle.
-- Reviews are normally retrieved together with their issues.
-- A separate collection would add unnecessary complexity.
+The send flow is:
 
-## 9. PostgreSQL User Reference
-
-The MongoDB review stores:
-
-```text
-userId
+``` text
+sendMessage()
+   ↓
+Authenticate
+   ↓
+Validate
+   ↓
+Authorize conversation
+   ↓
+Create Message with Prisma
+   ↓
+Real-time update
 ```
 
-This value represents the PostgreSQL user's identifier.
+## 8. Socket.IO Server
 
-The complete PostgreSQL user object is not duplicated in MongoDB.
+`server.ts` creates the HTTP server and attaches Socket.IO:
 
-This creates a reference between the two database systems while maintaining separate ownership of the data.
-
-## 10. MongoDB Index
-
-`userId` is indexed.
-
-The reason is that review history is normally queried for the authenticated user:
-
-```text
-CodeReview.find({
-  userId: session.user.id
-})
+``` text
+createServer()
+   ├── Next.js request handler
+   └── Socket.IO
 ```
 
-The index improves the efficiency of this common lookup as the review collection grows.
+Production settings:
 
-## 11. Create Review
-
-When an AI review is successfully generated, the review is persisted using:
-
-```text
-CodeReview.create()
+``` text
+hostname = 0.0.0.0
+port = process.env.PORT
 ```
 
-The stored document contains the generated review information together with the authenticated user's ID.
+Socket.IO is configured with the application origin from
+`BETTER_AUTH_URL`.
 
-Conceptual flow:
+## 9. Socket Authentication
 
-```text
-Authenticated User
-       ↓
-Submit Code
-       ↓
-Gemini Review
-       ↓
-Structured Result
-       ↓
-CodeReview.create()
-       ↓
-MongoDB
+During the handshake:
+
+``` text
+Socket connection
+ ↓
+auth.api.getSession()
+ ↓
+No session → Unauthorized
+ ↓
+socket.data.userId = session.user.id
+ ↓
+Connection accepted
 ```
 
-## 12. Read Review History
+Authenticated sockets join their user room.
 
-Review history is implemented in:
+## 10. Conversation Room Authorization
 
-```text
-src/actions/getReviewHistory.ts
-```
+For `join-conversation`, the server queries Prisma using the
+authenticated user ID and conversation ID.
 
-The query conceptually performs:
+Direct conversations require participation.
 
-```ts
-CodeReview.find({
-  userId: session.user.id,
-}).sort({
-  createdAt: -1,
-});
-```
+Workspace conversations require relevant workspace membership.
 
-Only information required for the history list is returned.
+Only an authorized socket joins:
 
-The list requires:
-
-- ID.
-- Title.
-- Severity.
-- Summary.
-- Creation date.
-
-The complete code and full review payload are not required for the history list.
-
-## 13. Update Review Title
-
-Review renaming is implemented in:
-
-```text
-src/actions/updateReviewTitle.ts
-```
-
-The update operation uses:
-
-```text
-CodeReview.findOneAndUpdate()
-```
-
-The operation is scoped to both:
-
-```text
-reviewId
-+
-authenticated user ID
-```
-
-This prevents a user from renaming another user's review.
-
-## 14. Delete Review
-
-Review deletion is implemented in:
-
-```text
-src/actions/deleteReview.ts
-```
-
-The deletion operation uses:
-
-```text
-CodeReview.findOneAndDelete()
-```
-
-The query is scoped to:
-
-```text
-reviewId
-+
-authenticated user ID
-```
-
-This prevents unauthorized deletion of another user's review.
-
-## 15. ReviewHistory UI
-
-The review history interface is:
-
-```text
-src/features/app/ai/ReviewHistory.tsx
-```
-
-Responsibilities include:
-
-- Loading review history.
-- Displaying loading state.
-- Displaying empty state.
-- Displaying reviews.
-- Renaming reviews.
-- Deleting reviews.
-- Updating local state after mutations.
-
-## 16. AI Structured Output
-
-The Gemini integration is responsible for producing a structured result.
-
-The conceptual structure is:
-
-```text
-Review
-├── title
-├── summary
-├── severity
-├── issues[]
-│   ├── title
-│   ├── explanation
-│   └── suggestion
-└── improvedCode
-```
-
-The structured format allows the frontend to render predictable fields rather than parsing arbitrary natural-language output.
-
-## 17. AI Prompt Responsibilities
-
-The AI prompt instructs Gemini to:
-
-- Review submitted code.
-- Identify bugs and problems.
-- Explain identified issues.
-- Suggest improvements.
-- Produce improved code.
-- Return structured output.
-- Avoid claiming that the code was executed or tested.
-
-User-provided code is treated as input to be reviewed rather than as trusted system instructions.
-
-## 18. Messaging
-
-Messages are persisted through the PostgreSQL data model.
-
-Socket.IO provides real-time communication.
-
-The client communicates through Socket.IO while the server manages room membership and event broadcasting.
-
-Conversation-specific rooms use:
-
-```text
+``` text
 conversation:<conversationId>
 ```
 
-User-specific rooms use:
+## 11. Client Socket Lifecycle
 
-```text
-user:<userId>
+`SocketConnection.tsx` controls connection lifecycle:
+
+``` text
+Component mounts
+ ↓
+socket.connect()
+ ↓
+Real-time connection
+ ↓
+Component unmounts
+ ↓
+socket.disconnect()
 ```
 
-## 19. Message Authorization
+`src/lib/socket.ts` uses:
 
-Message editing and deletion require server-side authorization.
-
-A user should only be able to modify their own messages.
-
-The UI does not act as the security boundary.
-
-## 20. Direct Message Deletion
-
-DM deletion is account-specific.
-
-Deleting a direct message for one account does not globally delete the message for the other participant.
-
-This behavior is intentional and must be preserved unless the product decision is explicitly changed.
-
-## 21. Error Handling
-
-Protected server operations should:
-
-1. Validate authentication.
-2. Validate input.
-3. Check authorization.
-4. Perform the database operation.
-5. Handle expected errors.
-6. Return an appropriate result to the client.
-
-Unauthorized operations must not be silently treated as successful.
-
-## 22. Environment Variables
-
-Sensitive configuration such as API keys and database credentials is stored using environment variables.
-
-Secrets must not be committed to Git.
-
-The Gemini API key is only accessed server-side.
-
-## 23. Data Ownership
-
-AI reviews belong to the authenticated user who created them.
-
-Ownership is enforced at query level rather than relying only on frontend filtering.
-
-This means that update/delete queries contain both the resource identifier and authenticated user ID.
-
-## 24. Current AI Review Lifecycle
-
-```text
-              ┌─────────────┐
-              │ Submit Code │
-              └──────┬──────┘
-                     ▼
-              ┌─────────────┐
-              │ Authenticate│
-              └──────┬──────┘
-                     ▼
-              ┌─────────────┐
-              │   Gemini    │
-              └──────┬──────┘
-                     ▼
-           ┌────────────────────┐
-           │ Structured Review  │
-           └─────────┬──────────┘
-                     ▼
-           ┌────────────────────┐
-           │ MongoDB CodeReview │
-           └─────────┬──────────┘
-                     ▼
-              ┌─────────────┐
-              │   History   │
-              └──────┬──────┘
-                     │
-             ┌───────┴────────┐
-             ▼                ▼
-          Rename            Delete
-             │                │
-             ▼                ▼
-        MongoDB Update   MongoDB Delete
+``` ts
+io({ autoConnect: false })
 ```
 
-## 25. Design Principles
+Because no URL is supplied, the client uses the current browser origin.
 
-The implementation follows these principles:
+## 12. Search and Debouncing
 
-- Authentication and authorization are server-side.
-- PostgreSQL is used for core relational data.
-- MongoDB is used specifically for AI review history.
-- Related review issues are embedded in CodeReview.
-- PostgreSQL user records are not duplicated in MongoDB.
-- AI API credentials remain server-side.
-- Real-time communication is separated from persistent message storage.
-- CodeNest AI remains a standalone application feature rather than a fake user.
-- DM deletion remains account-specific.
-- Documentation reflects implemented functionality rather than future plans.
+Search state is managed on the client.
+
+A reusable debounce helper delays callback execution until the user
+stops changing the query for the configured delay.
+
+Conceptually:
+
+``` text
+Typing
+ ↓
+debounce()
+ ↓
+300ms quiet period
+ ↓
+searchApp()
+ ↓
+Server-side search
+ ↓
+Update results
+```
+
+The scheduled callback can be cancelled during component cleanup.
+
+## 13. MongoDB CodeReview Model
+
+`src/models/CodeReview.ts` stores:
+
+``` text
+userId
+title
+code
+summary
+severity
+issues
+improvedCode
+createdAt
+updatedAt
+```
+
+Issues are embedded:
+
+``` text
+CodeReview
+ └── issues[]
+      ├── title
+      ├── explanation
+      └── suggestion
+```
+
+`userId` is indexed because review history is queried by authenticated
+user.
+
+## 14. MongoDB CRUD
+
+AI review history uses real MongoDB CRUD:
+
+``` text
+Create → CodeReview.create()
+Read   → CodeReview.find()
+Update → CodeReview.findOneAndUpdate()
+Delete → CodeReview.findOneAndDelete()
+```
+
+Ownership constraints use the authenticated user's ID.
+
+## 15. Review History
+
+`src/actions/getReviewHistory.ts` retrieves the authenticated user's
+reviews conceptually using:
+
+``` text
+CodeReview.find({
+  userId: session.user.id
+}).sort({ createdAt: -1 })
+```
+
+The history list uses summary metadata rather than requiring the full
+review payload.
+
+Review history supports rename and deletion through dedicated server
+actions.
+
+## 16. Gemini Integration
+
+`src/lib/gemini.ts` creates the server-side Gemini client.
+
+The key is:
+
+``` text
+GEMINI_API_KEY
+```
+
+It must not be exposed through a `NEXT_PUBLIC_` variable.
+
+## 17. AI Review Action
+
+`src/actions/reviewCode.ts`:
+
+1.  Authenticates the user.
+2.  Validates code input.
+3.  Rejects empty input.
+4.  Enforces the configured input-length limit.
+5.  Builds the review prompt.
+6.  Calls Gemini.
+7.  Requests structured JSON.
+8.  Parses the result.
+9.  Persists the review in MongoDB.
+10. Returns the structured result.
+
+## 18. AI Prompt Design
+
+The prompt defines the AI as a programming code-review assistant.
+
+It asks the model to explain code, identify bugs/problems, explain why
+issues occur, suggest improvements, provide improved code, and return
+structured output.
+
+The submitted code is treated as untrusted input, and the prompt
+instructs the model not to follow embedded instructions that attempt to
+override its review role.
+
+The AI should not claim that code was actually executed or tested.
+
+## 19. AI Response Contract
+
+The response is conceptually:
+
+``` ts
+{
+  title: string;
+  summary: string;
+  severity: "low" | "medium" | "high";
+  issues: {
+    title: string;
+    explanation: string;
+    suggestion: string;
+  }[];
+  improvedCode: string;
+}
+```
+
+## 20. AI UI
+
+The AI interface provides:
+
+-   Code input.
+-   Review action.
+-   Loading state.
+-   Error state.
+-   Summary.
+-   Severity.
+-   Issue list.
+-   Suggestions.
+-   Improved code.
+
+CodeNest AI remains separate from the messaging model.
+
+## 21. Environment Variables
+
+``` text
+DATABASE_URL
+MONGODB_URI
+GEMINI_API_KEY
+BETTER_AUTH_URL
+BETTER_AUTH_SECRET
+```
+
+`.env.example` contains placeholders only. Real secrets belong in
+local/deployment environment configuration.
+
+## 22. Build and Start
+
+Build:
+
+``` bash
+npm run build
+```
+
+which executes:
+
+``` text
+prisma generate
+ ↓
+next build
+```
+
+Production start:
+
+``` bash
+npm start
+```
+
+which runs the custom Node server in production mode.
+
+## 23. Error Handling
+
+Important failure cases include missing authentication, unauthorized
+membership, invalid roles, invalid input, missing records, database
+failures, and failed Gemini requests.
+
+Interactive components expose loading/error states where appropriate.
+
+## 24. Implementation Boundary
+
+The following are not implemented V1 features:
+
+-   Reactions
+-   Mentions
+-   File attachments
+-   Advanced presence
+-   AI streaming
+-   RAG
+-   Tool/function calling
+-   Rate limiting
+-   Automated testing
+-   Docker
+
+They remain future scope.

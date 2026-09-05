@@ -1,548 +1,360 @@
 # CodeNest
 
-CodeNest is a full-stack developer collaboration platform that combines real-time communication, workspace management, direct messaging, and AI-powered code review.
-
-The project is designed as a portfolio-quality application while demonstrating practical full-stack engineering concepts including authentication, authorization, relational and document databases, real-time communication, and LLM integration.
-
----
+CodeNest is a full-stack developer collaboration platform built with
+Next.js. It combines workspaces, direct and workspace messaging,
+real-time communication, search, authentication, and an AI-powered
+code-review feature.
 
 ## Features
 
-### Authentication
+-   Email/password authentication with Better Auth
+-   Protected application functionality
+-   Workspace creation and membership
+-   Workspace roles: OWNER, ADMIN, MEMBER
+-   Direct messaging
+-   Workspace messaging
+-   Persistent messages
+-   Real-time Socket.IO communication
+-   Message editing and deletion
+-   Deleted-message state
+-   Markdown and syntax-highlighted code blocks
+-   Application search
+-   CodeNest AI code review
+-   Structured Gemini AI responses
+-   MongoDB AI review history
+-   Review rename and delete operations
+-   Responsive UI with Tailwind CSS and shadcn/ui
 
-- Email/password authentication
-- Better Auth
-- PostgreSQL-backed authentication data
-- Protected application routes
-- Server-side session verification
+## Tech Stack
 
-### Workspaces
+  Area             Technology
+  ---------------- ----------------------------------
+  Frontend         Next.js 16, React 19, TypeScript
+  Styling          Tailwind CSS, shadcn/ui
+  Backend          Next.js Server Actions, Node.js
+  Real-time        Socket.IO
+  Relational DB    PostgreSQL + Prisma
+  Document DB      MongoDB + Mongoose
+  Authentication   Better Auth
+  AI               Google Gemini + `@google/genai`
 
-- Create workspaces
-- Workspace membership
-- Workspace roles
-- Owner, Admin, and Member roles
-- Add members
-- View workspace members
-- Leave a workspace
-- Owner-only workspace deletion
-- Real-time workspace events
+## Architecture
 
-### Messaging
+CodeNest uses PostgreSQL and MongoDB for different purposes.
 
-CodeNest supports two types of communication:
+PostgreSQL stores relational application data:
 
-- Workspace conversations
-- Direct messages
+-   Users
+-   Authentication/session data
+-   Workspaces
+-   Workspace members
+-   Conversations
+-   Conversation participants
+-   Messages
 
-Messaging includes:
+MongoDB stores CodeNest AI review history. Review issues are embedded
+inside each `CodeReview` document.
 
-- Persistent messages
-- Real-time messaging with Socket.IO
-- Message editing
-- Message deletion
-- Deleted-message state
-- Markdown rendering
-- Code blocks
-- Syntax highlighting
+Socket.IO runs on the same custom Node.js server as Next.js.
 
-Direct-message deletion is account-specific. Deleting a DM removes it only for the account performing the deletion and does not globally delete it for the other participant.
+``` text
+Browser
+   │
+   ├── Next.js / Server Actions
+   │       ├── Better Auth
+   │       ├── Prisma → PostgreSQL
+   │       └── Gemini → MongoDB review history
+   │
+   └── Socket.IO
+           │
+           └── Socket.IO Server
+```
 
-### Search
+## CodeNest AI
 
-Search functionality is available for:
+CodeNest AI is a standalone feature at:
 
-- Users
-- Workspaces
-- Direct conversations
-
----
-
-# CodeNest AI
-
-CodeNest AI is a standalone code-review feature available at:
-
-```text
+``` text
 /ai
 ```
 
-It is not modeled as a fake user or as a direct-message conversation.
+It is not modeled as a fake user or direct-message conversation.
 
-The AI workflow is:
-
-```text
+``` text
 User
   ↓
 CodeNest AI
   ↓
-Gemini API
+reviewCode()
   ↓
-Structured Code Review
+Gemini
   ↓
-MongoDB
+Structured review
   ↓
-Review History
+MongoDB review history
+  ↓
+UI
 ```
 
-Users can submit source code and receive a structured review containing:
+The review contains:
 
-- Review title
-- Summary
-- Severity
-- Issues
-- Suggestions
-- Improved code
+-   Title
+-   Summary
+-   Severity
+-   Issues
+-   Improved code
 
 Each issue contains:
 
-- Title
-- Explanation
-- Suggestion
-
-The AI is instructed to review the submitted code and provide recommendations without claiming that code was actually executed or tested.
-
----
-
-# AI Review History
-
-AI review results are persisted in MongoDB.
-
-Users can:
-
-- View previous reviews
-- Rename reviews
-- Delete reviews
-
-Review history is protected by authentication and ownership checks.
-
-A user can only access and modify their own reviews.
-
-The review document contains:
-
-```text
-CodeReview
-├── userId
-├── title
-├── code
-├── summary
-├── severity
-├── issues[]
-│   ├── title
-│   ├── explanation
-│   └── suggestion
-├── improvedCode
-├── createdAt
-└── updatedAt
-```
-
-The `issues` array is embedded inside the `CodeReview` document because issues belong directly to a review and do not currently have an independent lifecycle.
-
-The PostgreSQL user's ID is stored as `userId` rather than duplicating the complete user record in MongoDB.
-
-`userId` is indexed because review history is commonly queried by authenticated user.
-
----
-
-# Technology Stack
-
-## Frontend
-
-- Next.js
-- React
-- TypeScript
-- Tailwind CSS
-- shadcn/ui
-- Lucide React
-- React Markdown
-- React Syntax Highlighter
-
-## Backend
-
-- Next.js Server Actions
-- Node.js
-- Socket.IO
-
-## Databases
-
-- PostgreSQL
-- Prisma
-- MongoDB
-- Mongoose
-
-## Authentication
-
-- Better Auth
-- Prisma adapter
-- Email/password authentication
-
-## AI
-
-- Google Gemini API
-- `@google/genai`
-- Structured AI output
-
-## Real-Time Communication
-
-- Socket.IO
-- socket.io-client
-
----
-
-# Database Architecture
-
-CodeNest intentionally uses two databases for different responsibilities.
-
-## PostgreSQL
-
-PostgreSQL is the core relational database.
-
-It stores application data including:
-
-- Users
-- Authentication/session-related data
-- Workspaces
-- Workspace memberships
-- Conversations
-- Conversation participants
-- Messages
-
-Prisma is used as the PostgreSQL ORM.
-
-## MongoDB
-
-MongoDB is used specifically for AI code-review history.
-
-MongoDB demonstrates:
-
-- Document schema modeling
-- CRUD operations
-- Embedded documents
-- Referencing data across systems
-- Indexing
-
-This separation allows CodeNest to demonstrate both relational and document-oriented database design.
-
----
-
-# Architecture
-
-```text
-                         Browser
-                            │
-                            ▼
-                    ┌───────────────┐
-                    │    Next.js    │
-                    │   Application │
-                    └───────┬───────┘
-                            │
-             ┌──────────────┼──────────────┐
-             │              │              │
-             ▼              ▼              ▼
-        Better Auth      Prisma        Socket.IO
-             │              │              │
-             │              ▼              │
-             │        PostgreSQL           │
-             │                             │
-             │              Next.js Server │
-             │                    │        │
-             │              ┌─────┴─────┐  │
-             │              ▼           ▼  │
-             │          Gemini API   MongoDB
-             │                          │
-             │                          ▼
-             │                    AI Review History
-             │
-             └──────────── Authentication
-```
-
----
-
-# Security
-
-CodeNest follows server-side authorization principles.
-
-The frontend is not treated as the authorization boundary.
-
-Protected operations verify the appropriate combination of:
-
-- Authentication
-- Workspace membership
-- Workspace role
-- Resource ownership
-
-For example, AI review update and delete operations verify both:
-
-```text
-reviewId
-+
-authenticated user ID
-```
-
-This prevents users from modifying another user's review.
-
-The Gemini API key is stored server-side using environment variables and is never exposed to the browser.
-
----
-
-# Real-Time Communication
-
-Socket.IO is used for real-time application events.
-
-Conversation-specific rooms use:
-
-```text
-conversation:<conversationId>
-```
-
-User-specific rooms use:
-
-```text
-user:<userId>
-```
-
-Real-time events include:
-
-- New messages
-- Workspace added
-- Workspace left
-- Workspace deleted
-
-Socket listeners are cleaned up appropriately to avoid duplicate event handlers.
-
----
-
-# Project Structure
-
-```text
-src/
-├── actions/
-├── app/
-│   ├── (app)/
-│   │   ├── dashboard/
-│   │   ├── DM/
-│   │   ├── workspace/
-│   │   └── ai/
-│   ├── (auth)/
-│   └── globals.css
-│
-├── components/
-│   ├── auth/
-│   └── ui/
-│
-├── features/
+-   Title
+-   Explanation
+-   Suggestion
+
+The Gemini API key is accessed only on the server.
+
+## Project Structure
+
+``` text
+codenest/
+├── prisma/
+│   ├── migrations/
+│   └── schema.prisma
+├── public/
+├── src/
+│   ├── actions/
 │   ├── app/
-│   │   ├── ai/
-│   │   ├── chat/
-│   │   ├── header/
-│   │   ├── sidebar/
-│   │   └── socket/
-│   └── workspace/
-│
-├── lib/
-│   ├── auth.ts
-│   ├── auth-client.ts
-│   ├── gemini.ts
-│   ├── mongodb.ts
-│   ├── prisma.ts
-│   ├── socket.ts
-│   └── socket-server.ts
-│
-├── models/
-│   └── CodeReview.ts
-│
-└── types/
+│   ├── features/
+│   ├── lib/
+│   └── models/
+├── .env.example
+├── next.config.ts
+├── package.json
+├── server.ts
+└── tsconfig.json
 ```
 
----
+## Requirements
 
-# Environment Variables
+You need:
 
-Create a `.env` file containing the required environment variables for:
+-   Node.js
+-   npm
+-   PostgreSQL
+-   MongoDB
+-   Gemini API key
+-   Better Auth secret
 
-- PostgreSQL
-- MongoDB
-- Better Auth
-- Gemini API
+## Installation
 
-The exact secret values must remain local and must not be committed to Git.
+Clone the repository:
 
-At minimum, Better Auth requires:
-
-```env
-BETTER_AUTH_SECRET=your-random-secret
+``` bash
+git clone <your-repository-url>
+cd codenest
 ```
-
-Generate a strong secret with:
-
-```bash
-openssl rand -base64 32
-```
-
-Make sure `.env` is included in `.gitignore`.
-
----
-
-# Running the Project
 
 Install dependencies:
 
-```bash
+``` bash
 npm install
 ```
 
-Start the development server:
+## Environment Variables
 
-```bash
+Create a local `.env` file using `.env.example`:
+
+``` env
+DATABASE_URL=
+MONGODB_URI=
+GEMINI_API_KEY=
+BETTER_AUTH_URL=
+BETTER_AUTH_SECRET=
+```
+
+For local development:
+
+``` env
+BETTER_AUTH_URL=http://localhost:3000
+```
+
+Do not commit `.env` or real secret values.
+
+## Database Setup
+
+Generate the Prisma client:
+
+``` bash
+npx prisma generate
+```
+
+Apply existing migrations to the configured database:
+
+``` bash
+npx prisma migrate deploy
+```
+
+MongoDB only requires a valid `MONGODB_URI`; the application manages its
+Mongoose connection.
+
+## Development
+
+Start the application:
+
+``` bash
 npm run dev
 ```
 
-The application can then be opened using the local development URL provided by Next.js.
+Then open:
 
----
-
-# Code Quality
-
-Before committing changes, run:
-
-```bash
-npm run lint
+``` text
+http://localhost:3000
 ```
 
-For a production build:
+The custom Node server starts Next.js and Socket.IO together.
 
-```bash
+## Production Build
+
+``` bash
 npm run build
 ```
 
-The project uses Git for version control.
+The build runs:
 
-Typical workflow:
-
-```bash
-git status
-git add .
-git commit -m "your commit message"
-git push
+``` text
+prisma generate
+ ↓
+next build
 ```
 
----
+Start production:
 
-# Documentation
-
-The project documentation is maintained in:
-
-```text
-PRD.md
-HLD.md
-LLD.md
-README.md
+``` bash
+npm start
 ```
 
-### PRD
+The production server binds to `0.0.0.0` and uses the hosting provider's
+`PORT` environment variable.
 
-Describes the product, requirements, users, features, scope, and product decisions.
+## Scripts
 
-### HLD
+``` text
+npm run dev
+npm run build
+npm start
+npm run lint
+```
 
-Describes the overall architecture, system components, database architecture, integrations, and major data flows.
+## Authentication
 
-### LLD
+Better Auth manages email/password authentication and sessions.
 
-Describes implementation-level details including modules, models, server actions, database operations, authentication checks, and AI review flow.
+Protected operations retrieve the authenticated session on the server.
 
-These documents describe the current implemented system and should be updated when major features are added.
+## Real-Time Messaging
 
----
+Authenticated sockets join a user room:
 
-# Current V1 Features
+``` text
+user:<userId>
+```
 
-The current implementation includes:
+Before a conversation room is joined, the server checks whether the
+authenticated user has access:
 
-- Next.js application
-- React
-- TypeScript
-- Tailwind CSS
-- shadcn/ui
-- Better Auth
-- PostgreSQL
-- Prisma
-- MongoDB
-- Mongoose
-- Authentication
-- Protected routes
-- User profiles/avatar
-- Workspaces
-- Workspace roles
-- Workspace membership
-- Add members
-- Leave workspace
-- Owner-only workspace deletion
-- Direct messaging
-- Workspace messaging
-- Persistent messages
-- Socket.IO real-time communication
-- Message editing
-- Message deletion
-- Deleted-message state
-- Markdown
-- Code blocks
-- Syntax highlighting
-- Search
-- Gemini API integration
-- AI code review
-- Structured AI output
-- CodeNest AI standalone route
-- MongoDB AI review persistence
-- AI review history
-- Review renaming
-- Review deletion
-- MongoDB CRUD
-- MongoDB embedding
-- MongoDB referencing
-- MongoDB indexing
+``` text
+conversation:<conversationId>
+```
 
----
+The client uses:
 
-# Deferred Features
+``` ts
+io({ autoConnect: false })
+```
 
-The following features are intentionally not part of the current V1 implementation:
+so the React SocketConnection component controls connection lifecycle.
 
-- Reactions
-- Mentions
-- File uploads
-- Notifications
-- Presence
-- Typing indicators
-- AI streaming
-- Function/tool calling
-- RAG
-- LLM evaluation sets
-- Token/cost monitoring
-- Rate limiting
-- Automated testing
-- Docker
-- Production deployment
+## Security
 
-These may be considered in future versions if they provide meaningful product or engineering value.
+The current implementation uses:
 
----
+-   Server-side authentication.
+-   Server-side authorization.
+-   Workspace membership checks.
+-   Owner-role checks.
+-   Conversation access checks before Socket.IO room joins.
+-   AI review ownership checks.
+-   Server-side Gemini API access.
+-   Environment variables for secrets.
+-   `.env.example` placeholders without secret values.
 
-# Project Goal
+## Engineering Notes
 
-CodeNest is being developed as a portfolio-quality full-stack project.
+CodeNest deliberately uses different storage models:
 
-The goal is not only to create a working application, but to demonstrate understanding of:
+-   PostgreSQL for strongly relational collaboration data.
+-   MongoDB for document-oriented AI review history.
 
-- Full-stack application architecture
-- React and Next.js
-- TypeScript
-- Authentication and authorization
-- Relational database design
-- Document database design
-- CRUD operations
-- Real-time communication
-- LLM integration
-- Structured AI output
-- Server-side security
-- Git workflow
-- Environment and secret management
+The project also demonstrates TypeScript, React state/effects, Server
+Actions, Socket.IO rooms, search debouncing, SQL joins, structured AI
+output, and environment-based configuration.
+
+## Current V1 Scope
+
+Implemented:
+
+-   Authentication
+-   Workspaces
+-   Workspace membership and roles
+-   Direct messaging
+-   Workspace messaging
+-   Message persistence
+-   Real-time messaging
+-   Message editing/deletion
+-   Search
+-   Markdown/code rendering
+-   CodeNest AI
+-   Structured AI output
+-   MongoDB review persistence
+-   Review history management
+
+## Future Scope
+
+Potential future work:
+
+-   File/image uploads
+-   Notifications
+-   Presence
+-   Typing indicators
+-   Reactions
+-   Mentions
+-   AI streaming
+-   RAG
+-   AI tool/function calling
+-   Evaluation datasets
+-   Token/cost monitoring
+-   Rate limiting
+-   Automated testing
+-   Docker
+
+These are future possibilities, not completed V1 features.
+
+## Documentation
+
+-   `PRD.md` --- product requirements and scope
+-   `HLD.md` --- high-level architecture
+-   `LLD.md` --- implementation-level design
+-   `README.md` --- setup and project overview
+
+## Deployment Status
+
+The codebase is prepared for production deployment, including production
+server binding, environment-variable configuration, Socket.IO setup, and
+a production build script.
+
+The project should only be described as deployed after the production
+host, databases, environment variables, authentication, AI, and
+real-time functionality have been verified end-to-end.
+
+## License
+
+This is a portfolio/academic software project.
