@@ -11,11 +11,13 @@ export default function Navbar() {
       <div className="flex items-center gap-10">
         <ul className="flex items-center gap-6">
           <li>
-            <a href="#WhyChooseCodeNest">Why Choose CodeNest</a>
+            <li>
+              <a href="#why-choose-codenest">Why Choose CodeNest</a>
+            </li>
           </li>
           <li>
             <a
-              href="https://github.com/your-username/codenest"
+              href="https://github.com/PranavSharma124/CodeNest"
               target="_blank"
               rel="noopener noreferrer"
             >

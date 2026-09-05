@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { ConversationType } from "@prisma/client";
 
 const dev = process.env.NODE_ENV !== "production";
-const hostname = "localhost";
+const hostname = dev ? "localhost" : "0.0.0.0";
 const port = Number(process.env.PORT) || 3000;
 
 const app = next({ dev, hostname, port });
@@ -88,7 +88,7 @@ app.prepare().then(() => {
     socket.on("disconnect", () => {});
   });
 
-  httpServer.listen(port, () => {
+  httpServer.listen(port, hostname, () => {
     console.log(`> Ready on http://${hostname}:${port}`);
   });
 });

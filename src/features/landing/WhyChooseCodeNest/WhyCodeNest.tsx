@@ -29,7 +29,7 @@ const features = [
 ];
 export default function WhyChooseCodeNest() {
   return (
-    <section className="py-20">
+    <section className="py-20" id="why-choose-codenest">
       <div className="mx-auto max-w-6xl px-6">
         <div className="mb-12 text-center">
           <h2 className="text-4xl font-bold tracking-tight">
