@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { ConversationType } from "@prisma/client";
 
 const dev = process.env.NODE_ENV !== "production";
-const hostname = "localhost";
+const hostname = dev ? "localhost" : "0.0.0.0";
 const port = Number(process.env.PORT) || 3000;
 
 const app = next({ dev, hostname, port });
@@ -19,7 +19,12 @@ app.prepare().then(() => {
     handle(req, res);
   });
 
-  const io = new Server(httpServer);
+  const io = new Server(httpServer, {
+    cors: {
+      origin: process.env.BETTER_AUTH_URL,
+      credentials: true,
+    },
+  });
 
   setSocketIO(io);
 
@@ -88,7 +93,7 @@ app.prepare().then(() => {
     socket.on("disconnect", () => {});
   });
 
-  httpServer.listen(port, () => {
+  httpServer.listen(port, hostname, () => {
     console.log(`> Ready on http://${hostname}:${port}`);
   });
 });
